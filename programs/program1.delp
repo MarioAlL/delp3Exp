@@ -1,0 +1,17 @@
+use_criterion(more_specific).
+
+r -< s.
+~h -< d,t.
+s -< d.
+~e -< ~h, ~a.
+s -< h.
+~i -< ~a, s.
+h -< d.
+h -< b.
+a -< t.
+~f -< ~e.
+
+~a <- true.
+t <- true.
+b <- true.
+d <- t.

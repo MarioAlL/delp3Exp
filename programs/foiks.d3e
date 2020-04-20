@@ -1,0 +1,38 @@
+{
+	"predicates": [
+		"anx_risk",
+		"dep_risk",
+		"FN-anx_test",
+		"FN-tox_screen"
+	],
+	"af": [
+		["mem_loss -< true", "True"],
+		["short_breath -< true", "True"],
+		["fainting -< true", "True"],
+		["~sleep_aid_misuse <- neg_tox_screen", "True"],
+		["~anxiety <- neg_anx_test", "True"],
+		["anxiety <- depression", "True"],
+		["depression <- post_dep_test", "True"],
+		["sleep_aid_misuse -< mem_loss, depression", "True"],
+		["anxiety -< short_breath", "anx_risk"],
+		["depression -< mem_loss", "dep_risk"],
+		["anxiety -< fainting", "anx_risk"]
+	]
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
