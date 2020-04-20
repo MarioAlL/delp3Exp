@@ -1,0 +1,12 @@
+{
+"predicates":["netAccess","httpdIsVulnerable","obtainExecutionPrivileges"],
+"af":[
+["errorSystemsLogs <- true","True"],
+["vulnerable <- compromised","True"],
+["underAttack <- compromised, errorSystemsLogs","netAccess or obtainExecutionPrivileges"],
+["compromised -< true","netAccess"],
+["qualifiedPersonnel -< true","True"],
+["underAttack -< compromised","True"],
+["webServerVulnerable -< runningOldhttp","httpdIsVulnerable"],
+["~vulnerable -< qualifiedPersonnel","True"]
+]}

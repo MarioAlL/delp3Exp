@@ -1,0 +1,20 @@
+- Átomos = 20
+- Átomos usados = 10 + True (Uniforme para todos)
+
+# Escenario A
+50 K
+- Random = 50K sampleo
+- GAN = 30K sampleo + 20 guiado
+
+80 K
+- Random = 80K sampleo
+- GAN = 50K sampleo + 30K guaido
+
+#Escenario B
+100 segundos
+-Random = 100 segundos sampleo
+- GAN = 50s sampleo + 20s entrenamiento + 30s guiado
+
+150 segundos
+- Random = 150 segundos sampleo
+- GAN = 100s sampleo + 20s entrenamiento + 30s guiado

@@ -1,0 +1,12 @@
+{
+"predicates":["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p"],
+"af":[
+["errorSystemsLogs <- true","a or b"],
+["vulnerable <- compromised","c or d"],
+["underAttack <- compromised, errorSystemsLogs","e or f"],
+["compromised -< true","g or h"],
+["qualifiedPersonnel -< true","i or j"],
+["underAttack -< compromised","k or l"],
+["webServerVulnerable -< runningOldhttp","m or n"],
+["~vulnerable -< qualifiedPersonnel","o or p"]
+]}
