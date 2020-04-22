@@ -9,6 +9,7 @@ import signal
 from tensorflow.keras import layers
 import time
 from progress.bar import IncrementalBar
+from progress.spinner import Spinner
 from datasets import *
 from utilsExp import *
 tf.get_logger().setLevel('ERROR')
@@ -118,11 +119,13 @@ def train_step(vectors):
 # Training process
 # Training process with timeout
 def trainTimeout(dataset):
-    print("Training 'no' GAN...")
+    spiner = Spinner("Training 'no' GAN...")
     while(True):
         #start = time.time()
         for vector_batch in dataset:
             train_step(vector_batch)
+        spiner.next()
+    spiner.finish()
 
 # Training process with EPOCHS
 def trainEpochs(dataset, epochs):
@@ -168,7 +171,7 @@ def configureTrainingNo(dataDim, dataset, pathResult, timeout):
         trainEpochs(train_dataset, EPOCHS)
     else:
         #Training for timeout
-        signal.signal(signal.SIGALRM, handlerTimerGANyes)
+        signal.signal(signal.SIGALRM, handlerTimerGANno)
         signal.alarm(timeout)
         try:
             trainTimeout(train_dataset)

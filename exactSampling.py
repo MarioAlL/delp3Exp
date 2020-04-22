@@ -39,7 +39,7 @@ results = {
 def startSampling(literal, pathResult):
     global uniquePrograms
     
-    print('\nStarting exact sampling...')
+    print_ok_ops('\nStarting exact sampling...')
     bar = IncrementalBar('Processing worlds', max=numberOfWorlds)
     initialTime = time.time()
     for i in range(numberOfWorlds):
@@ -79,7 +79,8 @@ def startSampling(literal, pathResult):
    
     # Print the results
     print_ok_ops("Results: ")
-    print("Unique programs: %s" % (len(uniquePrograms)))
+    print("Unique programs: ", end='')
+    print_ok_ops("%s" % (len(uniquePrograms)))
     print_ok_ops("Prob(%s) = [%.4f, %.4f]" % (literal, results['l'], results['u']))
 
 def main(literal, database, pathResult):

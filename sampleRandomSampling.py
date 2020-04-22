@@ -1,11 +1,8 @@
 import numpy as np
 import sys
-import matplotlib.pyplot as plt
-import signal
 from progress.bar import IncrementalBar
 from utilsExp import *
 from database import*
-from datasets import *
 from consultDeLP import *
 import argparse
 
@@ -41,7 +38,7 @@ results = {
 def startSampling(literal, samples, pathResult):
     global uniquesWorlds, uniquePrograms
 
-    print('Starting random sampling...')
+    print_ok_ops('Starting random sampling...')
     bar = IncrementalBar('Processing worlds', max=samples)
     initialTime = time.time()
     for i in range(samples):
@@ -81,8 +78,10 @@ def startSampling(literal, samples, pathResult):
    
     # Print the results
     print_ok_ops("Results: ")
-    print("Unique worlds: %s" % (len(uniquesWorlds)))
-    print("Unique programs: %s" % (len(uniquePrograms)))
+    print("Unique worlds: ", end='')
+    print_ok_ops("%s" % (len(uniquesWorlds)))
+    print("Unique programs: ", end='')
+    print_ok_ops("%s" % (len(uniquePrograms)))
     print_ok_ops("Prob(%s) = [%.4f, %.4f]" % (literal, results['l'], results['u']))
 
 

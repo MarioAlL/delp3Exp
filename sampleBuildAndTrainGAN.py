@@ -1,4 +1,3 @@
-
 from __future__ import absolute_import, division, print_function, unicode_literals
 import os
 import argparse
@@ -16,10 +15,7 @@ tf.get_logger().warning('test')
 
 
 existYesModel, existNoModel = False, False
-# uniqueWorlds = Worlds Programs {(1,0,...,0),(1,0,...,0)}
-# uniquePrograms = {(program),(status)}
 uniquesWorlds, uniquePrograms = set(), set()
-world_data = 0
 allWorlds, globalProgram, predicates, numberOfWorlds = '', '', '', 0
 results = {
     'yes':{
@@ -54,7 +50,7 @@ def searchTrainDataset(literal, samples):
     #trainingDataSet = getTrainingDatasetForDB('training'+ literalStatus[0])
     datasetYes = []
     datasetNo = []
-    print('Starting random sampling...')
+    print_ok_ops('Starting random sampling...')
     bar = IncrementalBar('Processing worlds', max=samples)
     initialTime = time.time()
     for i in range(samples):
@@ -100,7 +96,6 @@ def samplingAndTraining(literal, samples, pathResult):
     if(len(trainingDatasets[0]) != 0):
         dataDim = len(trainingDatasets[0][0])
         # Yes training
-        # trainingDatasetes[0] = 'yes'
         # trainingDatasetes[1] = 'no'
         configureTrainingYes(dataDim, trainingDatasets[0], pathResult, timeout)
         existYesModel = True
@@ -148,7 +143,7 @@ def analyzeWorld(world, literal):
 
 def samplingGan(samples, pathResult, literal):
     global results
-    print_info_msj("Starting GAN Sampling...")
+    print_error_msj("Starting GAN Sampling...")
 
     nSamples = int(samples)
     initialTime = time.time()
@@ -177,23 +172,14 @@ def samplingGan(samples, pathResult, literal):
     else:
         models = [world['program'] for world in np.random.choice(allWorlds, int(nSamples * 2), replace=True)] 
     
-    print("Unique worlds before gan sampling --> %s" % (len(uniquesWorlds)))
-    print("Unique programs before gan sampling --> %s" % (len(uniquePrograms)))
+    bar = IncrementalBar('Processing generated programs...', max=len(models))
     
-    bar = IncrementalBar('Processing programs...', max=len(models))
     for wAux in models:
         analyzeWorld(wAux, literal)
         bar.next()
     bar.finish()
     
-    print("Unique worlds after gan -> " + str(len(uniquesWorlds)))
-    print("Unique programs after gan -> " + str(len(uniquePrograms)))
-    # print("yes Worlds: " + str(results['yW']))
-    # print("no Worlds: " + str(results['nW']))
-    # print("Undecided Worlds: " + str(results['undW']))
-    # print("Total worlds analyzed: " + str(world_data))
-    
-    results['timeExecution'].append(time.time() - initialTime)
+    results['timeExecution'].append(time.time() - initialTime)# Time for guided sampling
     results['worldsAnalyzed'] += nSamples*2
     results['yes']['perc'] = "{:.2f}".format((results['yes']['total'] * 100) / results['worldsAnalyzed'])
     results['no']['perc'] = "{:.2f}".format((results['no']['total'] * 100) / results['worldsAnalyzed'])
@@ -205,13 +191,19 @@ def samplingGan(samples, pathResult, literal):
     with open(pathResult + 'sampleGanResults.json', 'w') as outfile:  
         json.dump(results, outfile, indent=4)
 
+    #print results
+    print_ok_ops("Results: ")
+    print("Unique worlds: ", end='')
+    print_ok_ops("%s" % (len(uniquesWorlds)))
+    print("Unique programs: ", end='')
+    print_ok_ops("%s" % (len(uniquePrograms)))
+    print_ok_ops("Prob(%s) = [%.4f, %.4f]" % (literal, results['l'], results['u']))
+
 def main(literal, dbName, st, ss, pathResult):
     global allWorlds, globalProgram, predicates, numberOfWorlds
     
     connectDB(dbName)
-    print("Loading from db...")
     allWorlds = getAllWorlds()
-    print("Worlds loaded")
     globalProgram = getAf()
     predicates = getEM()
     numberOfWorlds = len(allWorlds)
@@ -244,8 +236,8 @@ parser.add_argument('-st',
                     dest='samplesT',
                     type=int,
                     required=True)
-parser.add_argument('-ss',
-                    help='Number of samples',
+parser.add_argument('-sg',
+                    help='Number of guided samples',
                     dest='samplesS',
                     type=int,
                     required=True)

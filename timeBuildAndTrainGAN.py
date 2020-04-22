@@ -16,40 +16,45 @@ tf.get_logger().setLevel('ERROR')
 tf.get_logger().warning('test')
 
 existYesModel, existNoModel = False, False
-# uniqueWorlds = Worlds Programs {(1,0,...,0),(1,0,...,0)}
-# uniqueWorldsIds = Ids {(id),(id)}
-# uniquePrograms = {(program),(status)}
 uniquesWorlds, uniquePrograms = set(), set()
-world_data = 0
-trainingAndGenTime = []
 allWorlds, globalProgram, predicates, numberOfWorlds = '', '', '', 0
-timeoutGuided = 0
 results = {
-    'yW':0,
-    'nW':0,
-    'undW':0,
-    'unkW':0,
-    'prY':0.00,
-    'prN':0.00,
-    'prUnd':0.00,
-    'prUnk':0.00,
+    'yes':{
+        'total':0,
+        'perc':0.00,
+        'prob':0.00
+    },
+    'no':{
+        'total':0,
+        'perc':0.00,
+        'prob':0.00
+    },
+    'und':{
+        'total':0,
+        'perc':0.00,
+        'prob':0.00
+    },
+    'unk':{
+        'total':0,
+        'perc':0.00,
+        'prob':0.00
+    },
     'l':0.00,
     'u':1.00,
-    'timeExecution':'',
+    'timeExecution':[],
     'worldsAnalyzed':0
 }
 
 def handlerTimer(signum, frame):
-    #print("Time over")
     raise Exception("Time over")
 
 def searchTrainDataset(literal, timeout):
-    global world_data, results, uniquesWorlds, uniquePrograms
+    global results, uniquesWorlds, uniquePrograms
     datasetYes, datasetNo = [], []
    
     signal.signal(signal.SIGALRM, handlerTimer)
-    print_ok_ops("\nTime setting (Sampling): " + str(timeout) + " seconds")
-    print('Starting random sampling...')
+    print_error_msj("\nTime setting (Sampling): " + str(timeout) + " seconds")
+    print_ok_ops('Starting random sampling...')
     bar = IncrementalBar('Processing worlds', max=numberOfWorlds)
     initialTime = time.time()
     signal.alarm(timeout)
@@ -64,46 +69,43 @@ def searchTrainDataset(literal, timeout):
                 delpProgram = mapWorldToProgram(globalProgram, predicates, world['program']) #return [[string],[bin]]
                 status = queryToProgram(delpProgram, literal, uniquePrograms) #return (program, status)
                 if status[1] == 'yes':
-                        results['yW'] += 1
-                        results['prY'] = results['prY'] + world['prob']
-                        datasetYes.append(world['program'])
+                    results['yes']['total'] += 1
+                    results['yes']['prob'] = results['yes']['prob'] + world['prob']
+                    datasetYes.append(world['program'])
                 elif status[1] == 'no':
-                        results['nW'] += 1
-                        results['prN'] = results['prN'] + world['prob']
-                        datasetNo.append(world['program'])
+                    results['no']['total'] += 1
+                    results['no']['prob'] = results['no']['prob'] + world['prob']
+                    datasetNo.append(world['program'])
                 elif status[1] == 'undecided':
-                        results['undW'] += 1
-                        results['prUnd'] = results['prUnd'] + world['prob']
+                    results['und']['total'] += 1
+                    results['und']['prob'] = results['und']['prob'] + world['prob']
                 elif status[1] == 'unknown':
-                        results['unkW'] += 1
-                        results['prUnk'] = results['prUnk'] + world['prob']
-            world_data += 1
+                    results['unk']['total'] += 1
+                    results['unk']['prob'] = results['unk']['prob'] + world['prob']
             bar.next()
-        
         bar.finish()
-
     except Exception as e:
         print('\n')
         print_error_msj(e)
         
     signal.alarm(0)
+    results['timeExecution'].append(time.time() - initialTime) # Time to sampling for find traininig dataset
+    results['worldsAnalyzed'] = i
     print_ok_ops('Length of training data set found (Yes): %s' % (len(datasetYes)))
     print_ok_ops('Length of training data set found (No): %s' % (len(datasetNo)))
-    # print("yes Worlds: " + str(results['yW']))
-    # print("no Worlds: " + str(results['nW']))
-    # print("Undecided Worlds: " + str(results['undW']))
-    trainingAndGenTime.append(time.time() - initialTime) # Time to random sampling
+    # Save the training dataset finded
+    #saveTrainingDataset(dataset, literalStatus)
     return [datasetYes, datasetNo]
     
 def samplingAndTraining(literal, timeoutSampling, timeoutTraining, pathResult):
-    global existNoModel, existYesModel, world_data, timeoutGuided
+    global existNoModel, existYesModel, timeoutGuided
 
     # Search a training dataset
     # trainingDatasetes[0] = 'yes'
     # trainingDatasetes[1] = 'no'
     trainingDatasets = searchTrainDataset(literal, timeoutSampling)
     
-    print_ok_ops("\nTime setting (Training): " + str(timeoutTraining) + " seconds")
+    print_error_msj("\nTime setting (Training): " + str(timeoutTraining) + " seconds")
     initialTime = time.time()
     
     if(len(trainingDatasets[0]) != 0 and len(trainingDatasets[1]) != 0):
@@ -131,14 +133,8 @@ def samplingAndTraining(literal, timeoutSampling, timeoutTraining, pathResult):
     else:
         print_error_msj("A 'no' training dataset could not be found")
         existNoModel = False
-
-    # El tiempo de entrenamiento fué menor que el parámetro recibido
-    # el restante se lo paso al tiempo para el sampleo guiado
-    #restTime = time.time() - initialTime
-    #timeoutGuided += restTime
     
-    #signal.alarm(0)
-    trainingAndGenTime.append(time.time() - initialTime) # Time to training
+    results['timeExecution'].append(time.time() - initialTime) # Time to training
 
 def analyzeWorld(world, literal):
     global results, uniquesWorlds, uniquePrograms
@@ -153,55 +149,75 @@ def analyzeWorld(world, literal):
         delpProgram = mapWorldToProgram(globalProgram, predicates, world)
         status = queryToProgram(delpProgram, literal, uniquePrograms)
         if status[1] == 'yes':
-                results['yW'] += 1
-                results['prY'] = results['prY'] + allWorlds[worldId]['prob']
+            results['yes']['total'] += 1
+            results['yes']['prob'] = results['yes']['prob'] + allWorlds[worldId]['prob']
         elif status[1] == 'no':
-                results['nW'] += 1
-                results['prN'] = results['prN'] + allWorlds[worldId]['prob']
+            results['no']['total'] += 1
+            results['no']['prob'] = results['no']['prob'] + allWorlds[worldId]['prob']
         elif status[1] == 'undecided':
-                results['undW'] += 1
-                results['prUnd'] = results['prUnd'] + allWorlds[worldId]['prob']
+            results['und']['total'] += 1
+            results['und']['prob'] = results['und']['prob'] + allWorlds[worldId]['prob']
         elif status[1] == 'unknown':
-                results['unkW'] += 1
-                results['prUnk'] = results['prUnk'] + allWorlds[worldId]['prob']
+            results['unk']['total'] += 1
+            results['unk']['prob'] = results['unk']['prob'] + allWorlds[worldId]['prob']
 
 def samplingGan(pathResult, literal, timeoutGuided):
-    global uniquesWorlds, uniquePrograms, world_data, results
+    global results
+    world_data = 0
 
     if(existYesModel):
         new_modelYes = tf.keras.models.load_model(pathResult + 'my_model_yes/')
     if(existNoModel):
         new_modelNo = tf.keras.models.load_model(pathResult + 'my_model_no/')
-    # print("Unique worlds before gan -> " + str(len(uniquesWorlds)))
-    # print("Unique programs befores gan -> " + str(len(uniquePrograms)))
+
     dataDim = len(predicates)    
     maxWorldsToAnalyze = int(numberOfWorlds/2)
     signal.signal(signal.SIGALRM, handlerTimer)
-    print_ok_ops("\nTime setting (Guided): " + str(timeoutGuided) + " seconds")
-    print_info_msj("Starting guided sampling")
-    bar = IncrementalBar('Processing programs...', max=maxWorldsToAnalyze)
+    print_error_msj("\nTime setting (Guided): " + str(timeoutGuided) + " seconds")
+    print_ok_ops("Starting guided sampling")
     initialTime = time.time()
     
     # For 'yes' worlds
+    bar = IncrementalBar('Processing "yes" generated programs...', max=maxWorldsToAnalyze)
     signal.alarm(int(timeoutGuided/2))
     try:
-        for iAux1 in range(maxWorldsToAnalyze):
-            noise = tf.random.uniform([1, dataDim]) # Controlar esto de normal o uniforme
-            if existYesModel:
-                #print("for 'yes'")
+        if(existYesModel):
+            for iAux1 in range(maxWorldsToAnalyze):
+                noise = tf.random.normal([1, dataDim]) # Controlar esto de normal o uniforme
+                #'YES' Models
                 modelsYes = new_modelYes(noise, training=False)
                 modelsToBinYes = (modelsYes.numpy() > 0.5) * 1
                 listModelYes = modelsToBinYes[0].tolist()
-            else:
+                analyzeWorld(listModelYes, literal)
+                world_data += 1
+                bar.next()
+            bar.finish()
+        else:
+            for iAux2 in range(maxWorldsToAnalyze):
                 worldRandomId = np.random.randint(numberOfWorlds, size=1)[0]
                 world = allWorlds[worldRandomId]
                 listModelYes = world['program']
+                analyzeWorld(listModelYes, literal)
+                world_data += 1
+                bar.next()
+            bar.finish()
+        # for iAux1 in range(maxWorldsToAnalyze):
+        #     noise = tf.random.uniform([1, dataDim]) # Controlar esto de normal o uniforme
+        #     if existYesModel:
+        #         #print("for 'yes'")
+        #         modelsYes = new_modelYes(noise, training=False)
+        #         modelsToBinYes = (modelsYes.numpy() > 0.5) * 1
+        #         listModelYes = modelsToBinYes[0].tolist()
+        #     else:
+        #         worldRandomId = np.random.randint(numberOfWorlds, size=1)[0]
+        #         world = allWorlds[worldRandomId]
+        #         listModelYes = world['program']
             
-            analyzeWorld(listModelYes, literal)
+        #     analyzeWorld(listModelYes, literal)
                 
-            world_data += 1
-            bar.next()
-        bar.finish()
+        #     world_data += 1
+        #     bar.next()
+        # bar.finish()
     except Exception as e:
         print('\n')
         print_error_msj(e)
@@ -209,59 +225,81 @@ def samplingGan(pathResult, literal, timeoutGuided):
     signal.alarm(0)
 
     # For 'no' Worlds
-    bar = IncrementalBar('Processing programs...', max=maxWorldsToAnalyze)
+    bar = IncrementalBar('Processing "no" generated programs...', max=maxWorldsToAnalyze)
     signal.alarm(int(timeoutGuided/2))
     try:
-        for iAux2 in range(maxWorldsToAnalyze):
-            noise = tf.random.uniform([1, dataDim]) # Controlar esto de normal o uniforme
-            if existNoModel:
+        if(existNoModel):
+            for iAux3 in range(maxWorldsToAnalyze):
+                noise = tf.random.normal([1, dataDim]) # Controlar esto de normal o uniforme
+                #'NO' Models
                 modelsNo = new_modelNo(noise, training=False)
                 modelsToBinNo = (modelsNo.numpy() > 0.5) * 1
                 listModelNo = modelsToBinNo[0].tolist()
-            else:
+                analyzeWorld(listModelNo, literal)
+                world_data += 1
+                bar.next()
+            bar.finish()
+        else:
+            for iAux4 in range(maxWorldsToAnalyze):
                 worldRandomId = np.random.randint(numberOfWorlds, size=1)[0]
                 world = allWorlds[worldRandomId]
                 listModelNo = world['program']
+                analyzeWorld(listModelNo, literal)
+                world_data += 1
+                bar.next()
+            bar.finish()
+        # for iAux2 in range(maxWorldsToAnalyze):
+        #     noise = tf.random.uniform([1, dataDim]) # Controlar esto de normal o uniforme
+        #     if existNoModel:
+        #         modelsNo = new_modelNo(noise, training=False)
+        #         modelsToBinNo = (modelsNo.numpy() > 0.5) * 1
+        #         listModelNo = modelsToBinNo[0].tolist()
+        #     else:
+        #         worldRandomId = np.random.randint(numberOfWorlds, size=1)[0]
+        #         world = allWorlds[worldRandomId]
+        #         listModelNo = world['program']
            
-            analyzeWorld(listModelNo, literal)
+        #     analyzeWorld(listModelNo, literal)
 
-            world_data += 1
-            bar.next()
-        bar.finish()
+        #     world_data += 1
+        #     bar.next()
+        # bar.finish()
     except Exception as e:
         print('\n')
         print_error_msj(e)
-        signal.alarm(0)
 
     signal.alarm(0)
-
-    # print("Unique worlds after gan -> " + str(len(uniquesWorlds)))
-    # print("Unique programs after gan -> " + str(len(uniquePrograms)))
-    # print("yes Worlds: " + str(results['yW']))
-    # print("no Worlds: " + str(results['nW']))
-    # print("Undecided Worlds: " + str(results['undW']))
-    # print("Total worlds analyzed: " + str(world_data))
     
-    # To save the guided sampling time execution (trainingAndGenTime[2])
-    trainingAndGenTime.append(time.time() - initialTime)
-    results['l'] = results['prY']
-    results['u'] = results['u'] - results['prN']
-    results['timeExecution'] = trainingAndGenTime
-    results['worldsAnalyzed'] = world_data
+    results['timeExecution'].append(time.time() - initialTime) #Time for guided sampling
+    results['worldsAnalyzed'] += world_data
+    results['yes']['perc'] = "{:.2f}".format((results['yes']['total'] * 100) / results['worldsAnalyzed'])
+    results['no']['perc'] = "{:.2f}".format((results['no']['total'] * 100) / results['worldsAnalyzed'])
+    results['und']['perc'] = "{:.2f}".format((results['und']['total'] * 100) / results['worldsAnalyzed'])
+    results['unk']['perc'] = "{:.2f}".format((results['unk']['total'] * 100) / results['worldsAnalyzed'])
+    results['l'] = results['yes']['prob']
+    results['u'] = results['u'] - results['no']['prob']
+
     with open(pathResult + 'timeGanResults.json', 'w') as outfile:  
         json.dump(results, outfile, indent=4)
+
+    #print results
+    print_ok_ops("Results: ")
+    print("Unique worlds: ", end='')
+    print_ok_ops("%s" % (len(uniquesWorlds)))
+    print("Unique programs: ", end='')
+    print_ok_ops("%s" % (len(uniquePrograms)))
+    print_ok_ops("Prob(%s) = [%.4f, %.4f]" % (literal, results['l'], results['u']))
 
 def main(literal, dbName, timeoutSampling, timeoutTraining, timeoutGuidedRec, pathResult):
     global allWorlds, globalProgram, predicates, numberOfWorlds, timeoutGuided
     
     connectDB(dbName)
-    print("Loading from db...")
     allWorlds = getAllWorlds()
-    print("Worlds loaded")
     globalProgram = getAf()
     predicates = getEM()
     numberOfWorlds = len(allWorlds)
     timeoutGuided = timeoutGuidedRec
+    
     # Sampling to find the dataset for training the GAN's models.
     # Traing the models
     samplingAndTraining(literal, timeoutSampling, timeoutTraining, pathResult)

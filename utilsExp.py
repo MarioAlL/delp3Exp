@@ -3,7 +3,6 @@ import types
 import sys
 import time
 import numpy as np
-from database import *
 import json
 #from consultDeLP import *
 
@@ -58,8 +57,6 @@ def formatForm(form, predicates, world):
 
 
 def getIsSatisfied(form, predicates, world):
-    #print(formatForm(form, predicates, world))
-    # print eval(formatForm(form, predicates, world))
     return eval(formatForm(form, predicates, world))
 
 
@@ -112,12 +109,6 @@ def genNormalProbabilities(numberOfWorlds):
     # print(sum(probabilities))
     return probabilities
 
-def controlDBExist(dbName):
-    if(not checkDB(dbName)):
-        print_error_msj("Error: Database %s does not exist" % (dbName))
-        exit()
-    return dbName
-
 def writeResult(results, times, pathFile):
     with open(pathFile + 'Results.json', 'w') as outfile:
         json.dump(results, outfile)
@@ -146,24 +137,3 @@ def getDataFromFile(pathFile):
         #print(e)
         print_error_msj("JSON incorrect format: %s" % (pathFile))
         exit()
-# if(sys.argv[1] == 'rnd'):
-#     main(sys.argv[2], int(sys.argv[3]), sys.argv[4])
-#     plt.plot(world_data, elapsed_data)
-#     plt.ylabel('Time (seconds)')
-#     plt.xlabel('Number of worlds')
-#     plt.title('Random Sampling \n Pr(%s) = [%.4f, %.4f]' % (sys.argv[2], pYes, probTotal - pNo)) 
-#     plt.tight_layout()
-#     plt.savefig('random.pdf', bbox_inches='tight')
-#     plt.show()
-# elif(sys.argv[1] == 'exact'):
-#     mainReal(sys.argv[2], sys.argv[3])
-#     plt.plot(world_data, elapsed_data)
-#     plt.ylabel('Time (seconds)')
-#     plt.xlabel('Number of worlds')
-#     plt.title('Total Sampling \n Pr(%s) = [%.4f, %.4f]' % (sys.argv[2], pYes, probTotal - pNo)) 
-#     plt.tight_layout()
-#     plt.savefig('Exact.pdf', bbox_inches='tight')
-#     plt.show()
-# else:
-#     print('Error')
-#     exit()
