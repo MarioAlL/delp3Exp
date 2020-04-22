@@ -13,6 +13,12 @@ def checkDB(database):
         return True
     return False
 
+def controlDBExist(dbName):
+    if(not checkDB(dbName)):
+        print_error_msj("Error: Database %s does not exist" % (dbName))
+        exit()
+    return dbName
+
 def connectDB(database):
     global db
     global client
@@ -104,9 +110,11 @@ def getAllWorlds():
     allWorlds = []
     worlds = db.worlds
     cursor = worlds.find({})
+
     spinner = Spinner('Loading worlds from db...')
     for document in cursor:
         allWorlds.append(document)
         spinner.next()
-    print_ok_ops("Completed")
+    spinner.finish()
+
     return allWorlds

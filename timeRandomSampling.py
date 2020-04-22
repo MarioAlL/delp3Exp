@@ -1,115 +1,115 @@
 import numpy as np
 import sys
-import matplotlib.pyplot as plt
 import signal 
 from progress.bar import IncrementalBar
 from utilsExp import *
 from database import*
-from datasets import *
 from consultDeLP import *
 import argparse
 
-# plt.style.use('fivethirtyeight')
+uniquePrograms, uniquesWorlds = set(), set()
+allWorlds, globalProgram, predicates, numberOfWorlds = '', '', '', 0
+results = {
+    'yes':{
+        'total':0,
+        'perc':0.00,
+        'prob':0.00
+    },
+    'no':{
+        'total':0,
+        'perc':0.00,
+        'prob':0.00
+    },
+    'und':{
+        'total':0,
+        'perc':0.00,
+        'prob':0.00
+    },
+    'unk':{
+        'total':0,
+        'perc':0.00,
+        'prob':0.00
+    },
+    'l':0.00,
+    'u':1.00,
+    'timeExecution':[],
+    'worldsAnalyzed':0
+}
+
 def handlerTimer(signum, frame):
-    #print("Time over")
     raise Exception("Time over")
 
 def startSampling(literal, timeout, pathResult):
-    yW, nW, undW, unkW, empty = 0, 0, 0, 0, 0
-    probY, probN, probUnd, probUnk, probEmpty = 0.00, 0.00, 0.00, 0.00, 0.00
-    
-    #To graph
-    world_data = 0
-    elapsed_data = 0
-    timeExecution = []
+    global uniquesWorlds, uniquePrograms
 
-    globalProgram = getAf()
-    predicates = getEM()
-    numberOfWorlds = pow(2, len(predicates))
-    print("Loading from db...")
-    allWorlds = getAllWorlds()
-    print("Worlds loaded")
-    uniquesWorlds = set() #Ids
-    uniquePrograms = set() # [[program],[status]]
-    print('Starting random sampling...')
-    bar = IncrementalBar('Processing worlds', max=numberOfWorlds)
-    #worldsIds = np.random.choice(numberOfWorlds, samples, replace=False)
-    initialTime = time.time()
     signal.signal(signal.SIGALRM, handlerTimer)
-    print_ok_ops("\nTime setting: " + str(timeout) + " seconds")
+    print_error_msj("\nTime setting: " + str(timeout) + " seconds")
+    print_ok_ops('Starting random sampling...')
+    bar = IncrementalBar('Processing worlds', max=numberOfWorlds)
+    initialTime = time.time()
     signal.alarm(timeout)
     try:
-            for i in range(numberOfWorlds):
-                worldRandomId = np.random.randint(numberOfWorlds, size=1)[0]
-                #worldRandomId = worldsIds[i]
-                if(not worldRandomId in uniquesWorlds):
-                    uniquesWorlds.add(worldRandomId)
-                    #world = getWorldById(0) # The binary array
-                    world = allWorlds[worldRandomId]
-                    # Build the PreDeLP Program for a world
-                    delpProgram = mapWorldToProgram(globalProgram, predicates, world['program'])
-                    status = queryToProgram(delpProgram, literal, uniquePrograms)
-                    if status[1] == 'yes':
-                            yW += 1
-                            probY = probY + world['prob']
-                    elif status[1] == 'no':
-                            nW += 1
-                            probN = probN + world['prob']
-                    elif status[1] == 'undecided':
-                            undW += 1
-                            probUnd = probUnd + world['prob']
-                    elif status[1] == 'unknown':
-                            unkW += 1
-                            probUnk = probUnk + world['prob']
-
-                world_data = i
-                elapsed_data = time.time() - initialTime
-                timeExecution.append([world_data, elapsed_data])
-
-                bar.next()
-            bar.finish()
-            
-            signal.alarm(0)
-        
+        for i in range(numberOfWorlds):
+            worldRandomId = np.random.randint(numberOfWorlds, size=1)[0]
+            if(not worldRandomId in uniquesWorlds):
+                uniquesWorlds.add(worldRandomId)
+                world = allWorlds[worldRandomId]
+                # Build the PreDeLP Program for a world
+                delpProgram = mapWorldToProgram(globalProgram, predicates, world['program'])
+                status = queryToProgram(delpProgram, literal, uniquePrograms)
+                if status[1] == 'yes':
+                    results['yes']['total'] += 1
+                    results['yes']['prob'] = results['yes']['prob'] + world['prob']
+                elif status[1] == 'no':
+                    results['no']['total'] += 1
+                    results['no']['prob'] = results['no']['prob'] + world['prob']
+                elif status[1] == 'undecided':
+                    results['und']['total'] += 1
+                    results['und']['prob'] = results['und']['prob'] + world['prob']
+                elif status[1] == 'unknown':
+                    results['unk']['total'] += 1
+                    results['unk']['prob'] = results['unk']['prob'] + world['prob']
+            bar.next()
+        bar.finish()
     except Exception as e:
         print('\n')
         print_error_msj(e)
-        signal.alarm(0)
+        
+    signal.alarm(0)
+    results['timeExecution'].append(time.time() - initialTime)
+    results['worldsAnalyzed'] = i
+    results['yes']['perc'] = "{:.2f}".format((results['yes']['total'] * 100) / results['worldsAnalyzed'])
+    results['no']['perc'] = "{:.2f}".format((results['no']['total'] * 100) / results['worldsAnalyzed'])
+    results['und']['perc'] = "{:.2f}".format((results['und']['total'] * 100) / results['worldsAnalyzed'])
+    results['unk']['perc'] = "{:.2f}".format((results['unk']['total'] * 100) / results['worldsAnalyzed'])
+    results['l'] = results['yes']['prob']
+    results['u'] = results['u'] - results['no']['prob']
     
-    #print_ok_ops("Results: ")
-    #print("Unique worlds: %s" % (len(uniquesWorlds)))
-    #print("Unique programs: %s" % (len(uniquePrograms)))
-    #print("Yes worlds: \t\t %s \t\t\t Prob =  %.4f" % (yW, probY))
-    #print("No worlds: \t\t %s \t\t\t Prob =  %.4f" % (nW, probN))
-    #print("Undecided worlds: \t %s \t\t\t Prob =  %.4f" % (undW, probUnd))
-    #print("Unknow worlds: \t\t %s \t\t\t Prob =  %.4f" % (unkW, probUnk))
-    prob = [probY, 1.00 - probN]
-    print_ok_ops("Prob(%s) = [%.4f, %.4f]" % (literal, prob[0], prob[1]))
-    
-    times = {
-        "experiment": "Random",
-        "timeExecution": [timeExecution[-1][1]],
-        "prob": [literal, prob[0], prob[1]],
-        'results' : {
-                'yW': yW,
-                'probY': probY,
-                'nW': nW,
-                'probN': probN,
-                'undW': undW,
-                'probUnd': probUnd,
-                'unkW': unkW,
-                'probUnk': probUnk,
-            },
-        'worldsAnalyzed': world_data
-    }
+    #Save file with results    
     with open(pathResult + 'timeRandomResults.json', 'w') as outfile:
-        json.dump(times, outfile)
+        json.dump(results, outfile, indent=4)
+   
+    # Print the results
+    print_ok_ops("Results: ")
+    print("Unique worlds: ", end='')
+    print_ok_ops("%s" % (len(uniquesWorlds)))
+    print("Unique programs: ", end='')
+    print_ok_ops("%s" % (len(uniquePrograms)))
+    print_ok_ops("Prob(%s) = [%.4f, %.4f]" % (literal, results['l'], results['u']))
 
 
 def main(literal, timeout, database, pathResult):
+    global allWorlds, globalProgram, predicates, numberOfWorlds
+    
     connectDB(database)
-    startSampling(literal, timeout, pathResult)
+    allWorlds = getAllWorlds()
+    globalProgram = getAf()
+    predicates = getEM()
+    numberOfWorlds = len(allWorlds)
     closeDB()
+    
+    startSampling(literal, timeout, pathResult)
+    
 
 parser = argparse.ArgumentParser(description="Script to perform the Sampling experiment (Random)")
 
