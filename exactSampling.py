@@ -86,6 +86,7 @@ def startSampling(literal, pathResult):
 def main(literal, database, pathResult):
     global allWorlds, globalProgram, predicates, numberOfWorlds
     
+    # NO DB NOW
     connectDB(database)
     allWorlds = getAllWorlds()
     globalProgram = getAf()
