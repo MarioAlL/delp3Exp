@@ -2,13 +2,12 @@ import numpy as np
 import sys
 from progress.bar import IncrementalBar
 from utilsExp import *
-from database import*
-from datasets import *
 from consultDeLP import *
+from bnCode import *
 import argparse
 
 uniquePrograms = set()
-allWorlds, globalProgram, predicates, numberOfWorlds = '', '', '', 0
+bayesianNetwork, globalProgram, predicates, numberOfWorlds = '', '', '', 0
 results = {
     'yes':{
         'total':0,
@@ -38,28 +37,31 @@ results = {
 
 def startSampling(literal, pathResult):
     global uniquePrograms
-    
+    dim = len(predicates) # Length to convert int to binary
     print_ok_ops('\nStarting exact sampling...')
     bar = IncrementalBar('Processing worlds', max=numberOfWorlds)
     initialTime = time.time()
     for i in range(numberOfWorlds):
-        world = allWorlds[i]
+        worldData = int_to_bin_with_format(i, dim)
+        world = worldData[0]
+        evidence = worldData[1]
+        prWorld = getSamplingProb(bayesianNetwork, evidence)
         # Build the delp program for a world
-        delpProgram = mapWorldToProgram(globalProgram, predicates, world['program'])
+        delpProgram = mapWorldToProgram(globalProgram, predicates, world)
         # Compute the literal status
         status = queryToProgram(delpProgram, literal, uniquePrograms)
         if status[1] == 'yes':
                 results['yes']['total'] += 1
-                results['yes']['prob'] = results['yes']['prob'] + world['prob']
+                results['yes']['prob'] = results['yes']['prob'] + prWorld
         elif status[1] == 'no':
                 results['no']['total'] += 1
-                results['no']['prob'] = results['no']['prob'] + world['prob']
+                results['no']['prob'] = results['no']['prob'] + prWorld
         elif status[1] == 'undecided':
                 results['und']['total'] += 1
-                results['und']['prob'] = results['und']['prob'] + world['prob']
+                results['und']['prob'] = results['und']['prob'] + prWorld
         elif status[1] == 'unknown':
                 results['unk']['total'] += 1
-                results['unk']['prob'] = results['unk']['prob'] + world['prob']
+                results['unk']['prob'] = results['unk']['prob'] + prWorld
         bar.next()
     bar.finish()
     results['worldsAnalyzed'] = numberOfWorlds
@@ -83,16 +85,13 @@ def startSampling(literal, pathResult):
     print_ok_ops("%s" % (len(uniquePrograms)))
     print_ok_ops("Prob(%s) = [%.4f, %.4f]" % (literal, results['l'], results['u']))
 
-def main(literal, database, pathResult):
-    global allWorlds, globalProgram, predicates, numberOfWorlds
+def main(literal, models, bn, pathResult):
+    global globalProgram, predicates, bayesianNetwork, numberOfWorlds
     
-    # NO DB NOW
-    connectDB(database)
-    allWorlds = getAllWorlds()
-    globalProgram = getAf()
-    predicates = getEM()
-    numberOfWorlds = len(allWorlds)
-    closeDB()
+    bayesianNetwork = bn
+    globalProgram = models["af"]
+    predicates = models["randomVar"]
+    numberOfWorlds = pow(2,len(predicates))
     
     startSampling(literal, pathResult)
     
@@ -104,11 +103,17 @@ parser.add_argument('-l',
                     action = 'store',
                     dest = 'literal',
                     required = True)
-parser.add_argument('-db',
-                    help='The database name where load the data',
+parser.add_argument('-p',
+                    help='The DeLP3E program path',
                     action='store',
-                    dest='dbName',
-                    type=controlDBExist,
+                    dest='program',
+                    type=getDataFromFile,
+                    required=True)
+parser.add_argument('-bn',
+                    help='The Bayesian Network file path (only "bifxml" for now)',
+                    action='store',
+                    dest='bn',
+                    type=loadBN,
                     required=True)
 parser.add_argument('-pathR',
                     help='Path to save the results (with file name)',
@@ -117,4 +122,4 @@ parser.add_argument('-pathR',
 
 arguments = parser.parse_args()
 
-main(arguments.literal, arguments.dbName, arguments.pathResult)
+main(arguments.literal, arguments.program, arguments.bn, arguments.pathResult)

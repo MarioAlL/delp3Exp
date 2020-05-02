@@ -137,3 +137,18 @@ def getDataFromFile(pathFile):
         #print(e)
         print_error_msj("JSON incorrect format: %s" % (pathFile))
         exit()
+
+def int_to_bin_with_format(number, lenght):
+    toFormat = '{0:0'+str(lenght)+'b}'
+    world = list(toFormat.format(int(number))) #List
+    world = [int(value) for value in world]
+    evidence = { i : world[i] for i in range(0, len(world) ) } #Dict
+    return [world, evidence]
+
+# def getModels(pathToProgram):
+#     file = open(pathFile,"r")
+#     toDict = json.load(file)
+#     predicates = toDict["randomVar"]
+#     af = toDict["af"]
+#     file.close()
+#     return [predicates, af]

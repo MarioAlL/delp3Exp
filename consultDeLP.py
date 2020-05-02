@@ -1,4 +1,5 @@
 import subprocess
+from utilsExp import *
 
 def queryToProgram(delpProgram, literal, uniquePrograms):
     if(not len(delpProgram[0]) == 0):

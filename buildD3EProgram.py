@@ -1,8 +1,9 @@
 from utilsExp import *
 import argparse
 import numpy as np
+from bnCode import *
 
-def main(data, nvar, nvaruse, fileName):
+def main(data, nvar, nvaruse, pathToSave):
     if(nvaruse <= nvar):
         af = []
         randomVar = [str(var) for var in list(range(nvar))] # Generate variables 
@@ -16,14 +17,18 @@ def main(data, nvar, nvaruse, fileName):
         print(probs)
         for rule in rules:
             form = getForm(randomVarToUse, probs)
-            af.append([rule, form])
+            af.append([rule+'.', form])
 
         program = {
             "randomVar":randomVar,
             "af":af
         }
 
-        writeLebelledProgram(program, fileName)
+        writeLebelledProgram(program, pathToSave + 'models')# Save the DeLP3E program
+        
+        #For build a random Bayesian Network
+        nodes = len(randomVar)
+        buildAndSaveBN(nodes, nodes, pathToSave)# Generate and save a random Bayesian Net
     else:
         print_error_msj("Error")
         exit()
@@ -60,11 +65,11 @@ parser.add_argument('-op',
                     help='Operator to use (NOT IMPLEMENTED)',
                     dest="operators",
                     required=False)
-parser.add_argument('-out',
-                    help='Output file name',
-                    dest="fileName",
+parser.add_argument('-outPath',
+                    help='Path for the output files',
+                    dest="pathToSave",
                     required=True)                     
 arguments = parser.parse_args()
 
 
-main(arguments.data, arguments.nvar, arguments.nvaruse, arguments.fileName)
+main(arguments.data, arguments.nvar, arguments.nvaruse, arguments.pathToSave)
