@@ -1,7 +1,12 @@
-import signal
+import numpy as np
+import sys
+import signal 
+from utilsExp import *
+from database import*
 from consultDeLP import *
 import argparse
-from em.bnCode import *
+from progress.spinner import Spinner
+from bnCode import *
 
 uniquePrograms, uniquesWorlds = set(), set()
 globalProgram, predicates, bayesianNetwork = '', '', ''

@@ -1,7 +1,7 @@
 from utilsExp import *
 import argparse
 import numpy as np
-from em.bnCode import *
+from bnCode import *
 
 def main(data, nvar, nvaruse, pathToSave):
     if(nvaruse <= nvar):
