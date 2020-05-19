@@ -3,8 +3,10 @@ from random import randint
 import pyAgrum as gum
 import os
 from csv import DictReader
+from progress.spinner import Spinner
 
 generator = ''
+ie=''
 
 def random_dag(nodes, edges):
     """Generate a random Directed Acyclic Graph (DAG) with a given number of nodes and edges."""
@@ -38,15 +40,15 @@ def buildAndSaveBN(nNodes, nEdges, pathToSave):
     gum.saveBN(bn,pathToSave+"bn.bifxml")
 
 def loadBN(path):
-    global generator
+    global generator, ie
     bn = gum.loadBN(path)
     generator = gum.BNDatabaseGenerator(bn)
+    ie = gum.LazyPropagation(bn)
     return bn
 
-def getSamplingProb(bn, evidence):
+def getSamplingProb(evidence):
     # Setting the inference method
     #bn=gum.loadBN('testBN.bifxml')
-    ie = gum.LazyPropagation(bn)
     # Set the evidence (the value for each variable)
     #ie.setEvidence({'0':1, '1':1, '2':0, '3':1, '4':1, '5':0, '6':1, '7':1, '8':0, '9':1, '10':1, '11':0, '12':1, '13':1, '14':0, '15':1, '16':1, '17':0, '18':1, '19':1})
     ie.setEvidence(evidence)
@@ -56,18 +58,35 @@ def getSamplingProb(bn, evidence):
 
 #bn = loadBN('testBN.bifxml')
 #getSampling(bn)
-def genSamples(bn, samples):
+def genSamples(bn, samples, pathToSave):
     #generator = gum.BNDatabaseGenerator(bn)
     generator.drawSamples(samples)
-    generator.toCSV('samples.csv')
+    generator.toCSV(pathToSave+'samples.csv')
     samplesToReturn = []
     # Load the csv and return samples as list   
-    with open('samples.csv', 'r') as read_obj:
+    with open(pathToSave + 'samples.csv', 'r') as read_obj:
         csv_dict_reader = DictReader(read_obj)
         for row in csv_dict_reader:
             asDict = dict(row)
             world = [int(value) for value in list(asDict.values())]
             samplesToReturn.append([world, asDict])
+    return samplesToReturn
+
+def genSamplesWithProb(bn, samples, pathToSave):
+    generator.drawSamples(samples)
+    generator.toCSV(pathToSave+'samples.csv')
+    samplesToReturn = []
+    # Load the csv and return samples as list   
+    with open(pathToSave + 'samples.csv', 'r') as read_obj:
+        csv_dict_reader = DictReader(read_obj)
+        spinner = Spinner("Loading samples...")
+        for row in csv_dict_reader:
+            asDict = dict(row)
+            world = [int(value) for value in list(asDict.values())]
+            prob = getSamplingProb(asDict)
+            samplesToReturn.append([world, asDict, prob])
+            spinner.next()
+        spinner.finish()
     return samplesToReturn
 
 

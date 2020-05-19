@@ -145,6 +145,10 @@ def int_to_bin_with_format(number, lenght):
     evidence = { i : world[i] for i in range(0, len(world) ) } #Dict
     return [world, evidence]
 
+def getFormula(variables, probs):
+    atoms = np.random.choice(variables, 2, replace=True)
+    operator = np.random.choice(['and','or'], 1, replace=True)
+    return str(atoms[0] + ' ' + operator[0] + ' ' + atoms[1])
 # def getModels(pathToProgram):
 #     file = open(pathFile,"r")
 #     toDict = json.load(file)

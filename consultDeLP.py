@@ -7,8 +7,10 @@ def queryToProgram(delpProgram, literal, uniquePrograms):
         if(iProgram == -1):
             # Programa único
             # Add the preference criterion
-            delpProgramString = delpProgram[0] + 'use_criterion(more_specific).'
-            cmd = ['./expListICIC', delpProgramString, literal]
+            delpProgramString = delpProgram[0] + 'use_criterion(more_specific);'
+            #delpProgramString = delpProgram[0] + "use_criterion(lab_comparison)'"
+            #cmd = ['./expListICIC', delpProgramString, literal]
+            cmd = ['./globalCore', 'stream', delpProgramString, 'answ', literal]
             proc = subprocess.Popen(cmd, 
                                     stdout=subprocess.PIPE, 
                                     stderr=subprocess.PIPE)

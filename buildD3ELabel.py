@@ -17,8 +17,12 @@ def main(data, nvar, nvaruse, pathToSave):
         print(randomVarToUse)
         #print(probs)
         for rule in rules:
+            if('-<' in rule):
+                label = np.random.random(1)[0]
+            else:
+                label = 1.00
             form = getForm(randomVarToUse, probs)
-            af.append([rule+';', form])
+            af.append(['('+rule+')::' + str(label)[:4] + "'", form])
 
         program = {
             "randomVar":randomVar,
@@ -27,7 +31,7 @@ def main(data, nvar, nvaruse, pathToSave):
             "af":af
         }
 
-        writeLebelledProgram(program, pathToSave + 'models')# Save the DeLP3E program
+        writeLebelledProgram(program, pathToSave + 'modelsLabels')# Save the DeLP3E program
         
         #For build a random Bayesian Network
         nodes = len(randomVar)
@@ -76,4 +80,4 @@ parser.add_argument('-outPath',
 arguments = parser.parse_args()
 
 
-main(arguments.data, arguments.nvar, arguments.nvaruse, arguments.pathToSave)
+main(arguments.data, arguments.nvar, arguments.nvaruse, arguments.pathToSave)            

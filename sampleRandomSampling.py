@@ -5,10 +5,12 @@ from utilsExp import *
 from database import*
 from consultDeLP import *
 import argparse
+from bnCode import *
 
 uniquePrograms, uniquesWorlds = set(), set()
-allWorlds, globalProgram, predicates, numberOfWorlds = '', '', '', 0
+bayesianNetwork, allWorlds, globalProgram, predicates = '', '', '', ''
 results = {
+    'literal': '',
     'yes':{
         'total':0,
         'perc':0.00,
@@ -32,45 +34,59 @@ results = {
     'l':0.00,
     'u':1.00,
     'timeExecution':[],
-    'worldsAnalyzed':0
+    'worldsAnalyzed':0,
+    'program':'',
+    'atomos':'',
+    'atomUsed':''
 }
 
-def startSampling(literal, samples, pathResult):
+def startSampling(literal, pathResult):
     global uniquesWorlds, uniquePrograms
-
+    numberOfWorlds = allWorlds
+    dim = len(predicates)
+    numberOfAllWorlds = pow(2, dim)
     print_ok_ops('Starting random sampling...')
-    bar = IncrementalBar('Processing worlds', max=samples)
+    bar = IncrementalBar('Processing worlds', max=numberOfWorlds)
     initialTime = time.time()
-    for i in range(samples):
-        worldRandomId = np.random.randint(numberOfWorlds, size=1)[0]
-        if(not worldRandomId in uniquesWorlds):
-            uniquesWorlds.add(worldRandomId)
-            world = allWorlds[worldRandomId]
+    for i in range(numberOfWorlds):
+        #worldData = allWorlds[i]
+        randomNum = np.random.choice(numberOfAllWorlds,1)
+        worldData = int_to_bin_with_format(randomNum[0], dim)
+        worldAsTuple = tuple(worldData[0])
+        if(not worldAsTuple in uniquesWorlds):
+            uniquesWorlds.add(worldAsTuple)
+            world = worldData[0]
+            evidence = worldData[1]
+            prWorld = getSamplingProb(evidence)
             # Build the PreDeLP Program for a world
-            delpProgram = mapWorldToProgram(globalProgram, predicates, world['program'])
+            delpProgram = mapWorldToProgram(globalProgram, predicates, world)
             status = queryToProgram(delpProgram, literal, uniquePrograms)
             if status[1] == 'yes':
                 results['yes']['total'] += 1
-                results['yes']['prob'] = results['yes']['prob'] + world['prob']
+                results['yes']['prob'] = results['yes']['prob'] + prWorld
             elif status[1] == 'no':
                 results['no']['total'] += 1
-                results['no']['prob'] = results['no']['prob'] + world['prob']
+                results['no']['prob'] = results['no']['prob'] + prWorld
             elif status[1] == 'undecided':
                 results['und']['total'] += 1
-                results['und']['prob'] = results['und']['prob'] + world['prob']
+                results['und']['prob'] = results['und']['prob'] + prWorld
             elif status[1] == 'unknown':
                 results['unk']['total'] += 1
-                results['unk']['prob'] = results['unk']['prob'] + world['prob']
+                results['unk']['prob'] = results['unk']['prob'] + prWorld
         bar.next()
     bar.finish()
     results['timeExecution'].append(time.time() - initialTime)
-    results['worldsAnalyzed'] = samples
+    results['worldsAnalyzed'] = numberOfWorlds
     results['yes']['perc'] = "{:.2f}".format((results['yes']['total'] * 100) / results['worldsAnalyzed'])
     results['no']['perc'] = "{:.2f}".format((results['no']['total'] * 100) / results['worldsAnalyzed'])
     results['und']['perc'] = "{:.2f}".format((results['und']['total'] * 100) / results['worldsAnalyzed'])
     results['unk']['perc'] = "{:.2f}".format((results['unk']['total'] * 100) / results['worldsAnalyzed'])
     results['l'] = results['yes']['prob']
     results['u'] = results['u'] - results['no']['prob']
+    results['literal'] = literal
+    results['program'] = globalProgram
+    results['atomos'] = predicates
+    results['atomUsed'] = predUsed
     
     #Save file with results    
     with open(pathResult + 'sampleRandomResults.json', 'w') as outfile:
@@ -85,17 +101,17 @@ def startSampling(literal, samples, pathResult):
     print_ok_ops("Prob(%s) = [%.4f, %.4f]" % (literal, results['l'], results['u']))
 
 
-def main(literal, samples, database, pathResult):
-    global allWorlds, globalProgram, predicates, numberOfWorlds
+def main(literal, samples, models, bn, pathResult):
+    global allWorlds, globalProgram, predicates, bayesianNetwork, predUsed
     
-    connectDB(database)
-    allWorlds = getAllWorlds()
-    globalProgram = getAf()
-    predicates = getEM()
-    numberOfWorlds = len(allWorlds)
-    closeDB()
+    bayesianNetwork = bn
+    allWorlds = samples
+    #allWorlds = genSamples(bn, samples, pathResult)
+    globalProgram = models["af"]
+    predicates = models["randomVar"]
+    predUsed = len(models["varUsed"])
 
-    startSampling(literal, samples, pathResult)
+    startSampling(literal, pathResult)
 
 
 parser = argparse.ArgumentParser(
@@ -106,11 +122,17 @@ parser.add_argument('-l',
                     action='store',
                     dest='literal',
                     required=True)
-parser.add_argument('-db',
-                    help='The database name where load the data',
+parser.add_argument('-p',
+                    help='The DeLP3E program path',
                     action='store',
-                    dest='dbName',
-                    type=controlDBExist,
+                    dest='program',
+                    type=getDataFromFile,
+                    required=True)
+parser.add_argument('-bn',
+                    help='The Bayesian Network file path (only "bifxml" for now)',
+                    action='store',
+                    dest='bn',
+                    type=loadBN,
                     required=True)
 parser.add_argument('-pathR',
                     help='Path to save the results (with file name)',
@@ -123,4 +145,4 @@ parser.add_argument('-s',
                     required=True)
 arguments = parser.parse_args()
 
-main(arguments.literal, arguments.samples, arguments.dbName, arguments.pathResult)
+main(arguments.literal, arguments.samples, arguments.program, arguments.bn, arguments.pathResult)

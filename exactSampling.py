@@ -45,7 +45,7 @@ def startSampling(literal, pathResult):
         worldData = int_to_bin_with_format(i, dim)
         world = worldData[0]
         evidence = worldData[1]
-        prWorld = getSamplingProb(bayesianNetwork, evidence)
+        prWorld = getSamplingProb(evidence)
         # Build the delp program for a world
         delpProgram = mapWorldToProgram(globalProgram, predicates, world)
         # Compute the literal status
