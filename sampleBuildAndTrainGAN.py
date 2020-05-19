@@ -22,6 +22,7 @@ incorrectProgram = 0
 existYesModel, existNoModel = False, False
 uniquesWorlds, uniquePrograms = set(), set()
 bayesianNetworl, allWorlds, globalProgram, predicates, inCNF = '', '', '', '', ''
+bayesianNetworl, allWorlds, globalProgram, predicates = '', '', '', ''
 results = {
     'yes':{
         'total':0,
@@ -74,15 +75,20 @@ def searchTrainDataset(literal):
             # Build the PreDeLP Program for a world
             # delpProgram = [[rules], [binary]]
             delpProgram = mapWorldToProgram(globalProgram, predicates, world)
+            delpProgram = mapWorldToProgram(globalProgram, predicates, world)
             status = queryToProgram(delpProgram, literal, uniquePrograms)
             if status[1] == 'yes':
                 results['yes']['total'] += 1
                 results['yes']['prob'] = results['yes']['prob'] + prWorld
                 datasetYes.append(delpProgram[1])
+                results['yes']['prob'] = results['yes']['prob'] + prWorld
+                datasetYes.append(world)
             elif status[1] == 'no':
                 results['no']['total'] += 1
                 results['no']['prob'] = results['no']['prob'] + prWorld
                 datasetNo.append(delpProgram[1])
+                results['no']['prob'] = results['no']['prob'] + prWorld
+                datasetNo.append(world)
             elif status[1] == 'undecided':
                 results['und']['total'] += 1
                 results['und']['prob'] = results['und']['prob'] + prWorld
@@ -106,6 +112,7 @@ def samplingAndTraining(literal, pathResult):
     trainingDatasets = searchTrainDataset(literal)
     
     
+    trainingDatasets = searchTrainDataset(literal)
     timeout = 0
     initialTime = time.time()
     if(len(trainingDatasets[0]) != 0):
@@ -139,6 +146,15 @@ def analyzeWorld(progInBin, literal):
     delpProgram = mapBinToProgram(globalProgram, progInBin)
     if(delpProgram != -1):
         aux = len(uniquePrograms)
+def analyzeWorld(world, literal):
+    global results, uniquesWorlds, uniquePrograms
+    y = tuple(world)
+    if(not y in uniquesWorlds):
+        uniquesWorlds.add(y)
+        evidence = { i : world[i] for i in range(0, len(world) ) } #Dict
+        prWorld = getSamplingProb(evidence)
+        # Build the PreDeLP Program for a world
+        delpProgram = mapWorldToProgram(globalProgram, predicates, world)
         status = queryToProgram(delpProgram, literal, uniquePrograms)
         if aux != len(uniquePrograms):
             if status[1] == 'yes':
@@ -180,11 +196,27 @@ def analyzeWorld(progInBin, literal):
     else:
         #Incorrect Program
         incorrectProgram += 1
+        if status[1] == 'yes':
+            results['yes']['total'] += 1
+            results['yes']['prob'] = results['yes']['prob'] + prWorld
+        elif status[1] == 'no':
+            results['no']['total'] += 1
+            results['no']['prob'] = results['no']['prob'] + prWorld
+        elif status[1] == 'undecided':
+            results['und']['total'] += 1
+            results['und']['prob'] = results['und']['prob'] + prWorld
+        elif status[1] == 'unknown':
+            results['unk']['total'] += 1
+            results['unk']['prob'] = results['unk']['prob'] + prWorld
 
 def samplingGan(samples, pathResult, literal):
     global results, uniquePrograms
     numberOfAllWorlds = allWorlds
     uniquePrograms = set()
+    global results
+    newYesWorldsGenerated = results["yes"]['total']
+    newNoWorldsGenerated = results["no"]['total']
+
     print_error_msj("Starting GAN Sampling...")
     nSamples = int(samples)
     initialTime = time.time()
@@ -201,6 +233,7 @@ def samplingGan(samples, pathResult, literal):
             randomNum = np.random.choice(numberOfAllWorlds, nSamples, replace=True)
             listModelYes = list(map(lambda ints: int_to_bin_with_format(ints, dataDim)[0], randomNum))
             #listModelYes = [world for [world, asDict] in genSamples(bayesianNetwork, nSamples, pathResult)] To work with BN
+            listModelYes = [world for [world, asDict] in genSamples(bayesianNetwork, nSamples, pathResult)]
         
         noise = tf.random.normal([nSamples, dataDim]) # Controlar esto de normal o uniforme
         if existNoModel:
@@ -212,6 +245,7 @@ def samplingGan(samples, pathResult, literal):
             randomNum = np.random.choice(numberOfAllWorlds, nSamples, replace=True)
             listModelNo = list(map(lambda ints: int_to_bin_with_format(ints, dataDim)[0], randomNum))
             #listModelNo = [world for [world, asDict] in genSamples(bayesianNetwork, nSamples, pathResult)] To work with BN
+            listModelNo = [world for [world, asDict] in genSamples(bayesianNetwork, nSamples, pathResult)]
         
         models = listModelYes + listModelNo
     else:
@@ -238,6 +272,11 @@ def samplingGan(samples, pathResult, literal):
     with open(pathResult + 'sampleGanResults.json', 'w') as outfile:  
         json.dump(results, outfile, indent=4)
 
+    newYesWorldsGenerated = results["yes"]['total'] - newYesWorldsGenerated
+    newNoWorldsGenerated = results["no"]['total'] - newNoWorldsGenerated
+    print_error_msj("New yes worlds generated by GAN: %s" % (newYesWorldsGenerated))
+    print_error_msj("New no worlds generated by GAN: %s" % (newNoWorldsGenerated))
+
     #print results
     print_ok_ops("Results: ")
     print("Unique worlds: ", end='')
@@ -252,6 +291,8 @@ def samplingGan(samples, pathResult, literal):
 
 def main(literal, models, bn, st, ss, pathResult):
     global allWorlds, globalProgram, predicates, numberOfWorlds, bayesianNetwork, inCNF
+def main(literal, models, bn, st, ss, pathResult):
+    global allWorlds, globalProgram, predicates, numberOfWorlds, bayesianNetwork
     
     bayesianNetwork = bn
     allWorlds = st
@@ -261,6 +302,12 @@ def main(literal, models, bn, st, ss, pathResult):
     
     formulas = [form for [rules,form] in globalProgram]
     inCNF = generateClauses(formulas)
+    bayesianNetwork = bn
+    allWorlds = st
+    #allWorlds = genSamples(bn, st, pathResult)
+    globalProgram = models["af"]
+    predicates = models["randomVar"]
+
     # Sampling and Training
     samplingAndTraining(literal, pathResult)
     # Guiaded Sampling

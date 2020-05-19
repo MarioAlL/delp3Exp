@@ -1,0 +1,10 @@
+use_criterion(more_specific).
+
+errorSystemsLogs <- true.                         
+vulnerable <- compromised.                 
+underAttack <- compromised, errorSystemsLogs.
+compromised -< true.
+qualifiedPersonnel -< true.
+underAttack -< compromised.
+webServerVulnerable -< runningOldhttp.
+~vulnerable -< qualifiedPersonnel.

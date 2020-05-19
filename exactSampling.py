@@ -46,7 +46,6 @@ def startSampling(literal, pathResult):
         world = worldData[0]
         evidence = worldData[1]
         prWorld = getSamplingProb(evidence)
-
         # Build the delp program for a world
         delpProgram = mapWorldToProgram(globalProgram, predicates, world)
         # Compute the literal status

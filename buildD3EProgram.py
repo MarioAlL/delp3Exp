@@ -19,7 +19,7 @@ def main(data, nvar, nvaruse, pathToSave):
         #print(randomVarToUse)
         #print(probs)
         for rule in rules:
-            form = getForm(randomVarToUse, probs)
+            form = getFormula(randomVarToUse, probs)
             af.append([rule+';', form])
 
         program = {
@@ -41,7 +41,6 @@ def main(data, nvar, nvaruse, pathToSave):
 def getForm(variables, probs):
     #form = np.random.choice(variables, 1, p = probs,replace=True)
     form = np.random.choice(variables, 1, replace=True)
-    #neg = np.random.choice(["","~"], 1, replace=True)
     return str(form[0])
 
 def getFormula(variables, probs):
@@ -49,6 +48,12 @@ def getFormula(variables, probs):
         atoms = np.random.choice(variables, 2, p= probs, replace=True)
     else:
         atoms = np.random.choice(variables, 2, replace=True)
+    
+    if 'True' in atoms:
+        return 'True'
+    else:
+        operator = np.random.choice(['and','or'], 1, replace=True)
+        return str(atoms[0] + ' ' + operator[0] + ' ' + atoms[1])
 
     if 'True' in atoms:
         return 'True'
