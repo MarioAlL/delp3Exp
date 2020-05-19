@@ -60,12 +60,12 @@ def getIsSatisfied(form, predicates, world):
     return eval(formatForm(form, predicates, world))
 
 
-def mapBinToProgram(rules, binArray):
+def mapBinToProgram(globalProgram, binArray):
     delpProgram = ''
     for i, binElem in enumerate(binArray):
         if binElem == 1:
-            delpProgram += rules[i]
-    return delpProgram
+            delpProgram += globalProgram[i][0]
+    return [delpProgram, binArray]
 
 
 def mapWorldToProgram(globalProgram, em, world):
@@ -78,6 +78,7 @@ def mapWorldToProgram(globalProgram, em, world):
             delpProgramBin.append(1)
         else:
             delpProgramBin.append(0)
+            #[[rules],[binary]]
     return [delpProgram, delpProgramBin]
 
 def genProbabilities(numberOfWorlds):

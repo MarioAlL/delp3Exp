@@ -68,16 +68,17 @@ def searchTrainDataset(literal):
             evidence = worldData[1]
             prWorld = getSamplingProb(evidence)
             # Build the PreDeLP Program for a world
+            # delpProgram = [[rules], [binary]]
             delpProgram = mapWorldToProgram(globalProgram, predicates, world)
             status = queryToProgram(delpProgram, literal, uniquePrograms)
             if status[1] == 'yes':
                 results['yes']['total'] += 1
                 results['yes']['prob'] = results['yes']['prob'] + prWorld
-                datasetYes.append(world)
+                datasetYes.append(delpProgram[1])
             elif status[1] == 'no':
                 results['no']['total'] += 1
                 results['no']['prob'] = results['no']['prob'] + prWorld
-                datasetNo.append(world)
+                datasetNo.append(delpProgram[1])
             elif status[1] == 'undecided':
                 results['und']['total'] += 1
                 results['und']['prob'] = results['und']['prob'] + prWorld
@@ -99,6 +100,8 @@ def samplingAndTraining(literal, pathResult):
 
     # Search a training dataset
     trainingDatasets = searchTrainDataset(literal)
+    
+    
     timeout = 0
     initialTime = time.time()
     if(len(trainingDatasets[0]) != 0):
@@ -124,28 +127,24 @@ def samplingAndTraining(literal, pathResult):
    
     results['timeExecution'].append(time.time() - initialTime) # Time to training
 
-def analyzeWorld(world, literal):
+def analyzeWorld(progInBin, literal):
     global results, uniquesWorlds, uniquePrograms
-    y = tuple(world)
-    if(not y in uniquesWorlds):
-        uniquesWorlds.add(y)
-        evidence = { i : world[i] for i in range(0, len(world) ) } #Dict
-        prWorld = getSamplingProb(evidence)
-        # Build the PreDeLP Program for a world
-        delpProgram = mapWorldToProgram(globalProgram, predicates, world)
-        status = queryToProgram(delpProgram, literal, uniquePrograms)
-        if status[1] == 'yes':
-            results['yes']['total'] += 1
-            results['yes']['prob'] = results['yes']['prob'] + prWorld
-        elif status[1] == 'no':
-            results['no']['total'] += 1
-            results['no']['prob'] = results['no']['prob'] + prWorld
-        elif status[1] == 'undecided':
-            results['und']['total'] += 1
-            results['und']['prob'] = results['und']['prob'] + prWorld
-        elif status[1] == 'unknown':
-            results['unk']['total'] += 1
-            results['unk']['prob'] = results['unk']['prob'] + prWorld
+    
+    # Build the PreDeLP Program from the program in binary
+    delpProgram = mapBinToProgram(globalProgram, progInBin)
+    status = queryToProgram(delpProgram, literal, uniquePrograms)
+    if status[1] == 'yes':
+        results['yes']['total'] += 1
+        #results['yes']['prob'] = results['yes']['prob'] + prWorld
+    elif status[1] == 'no':
+        results['no']['total'] += 1
+        #results['no']['prob'] = results['no']['prob'] + prWorld
+    elif status[1] == 'undecided':
+        results['und']['total'] += 1
+        #results['und']['prob'] = results['und']['prob'] + prWorld
+    elif status[1] == 'unknown':
+        results['unk']['total'] += 1
+        #results['unk']['prob'] = results['unk']['prob'] + prWorld
 
 def samplingGan(samples, pathResult, literal):
     global results
@@ -158,7 +157,7 @@ def samplingGan(samples, pathResult, literal):
     initialTime = time.time()
     # Check if models exists 
     if existYesModel or existNoModel:
-        dataDim = len(predicates)
+        dataDim = len(globalProgram)
         noise = tf.random.normal([nSamples, dataDim]) # Controlar esto de normal o uniforme
         if existYesModel:
             new_modelYes = tf.keras.models.load_model(pathResult + 'my_model_yes/')
