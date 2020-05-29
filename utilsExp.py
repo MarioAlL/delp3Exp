@@ -4,6 +4,8 @@ import sys
 import time
 import numpy as np
 import json
+from pysat.solvers import Glucose3
+import itertools
 #from consultDeLP import *
 
 
@@ -55,6 +57,46 @@ def formatForm(form, predicates, world):
 
     return newForm
 
+def get_clause_for_solver(form, status):
+    #form = Formula from the EM
+    #status = True o False (if the formula has to be used or not)
+    clause = []
+    formAsList = form.strip().split(' ')
+    if(len(formAsList) > 1):
+        if status == True:
+            if 'or' in formAsList:
+                clause.append([int(formAsList[0]), int(formAsList[2])])
+            else:
+                #AND operator
+                clause.append([int(formAsList[0])])
+                clause.append([int(formAsList[2])])
+        else:
+            # Neg (convert to CNF)
+            if 'or' in formAsList:
+                clause.append([- int(formAsList[0])])
+                clause.append([- int(formAsList[2])])
+            else:
+                clause.append([- int(formAsList[0]), - int(formAsList[2])])
+        
+        return clause
+    else:
+        if status == True:
+            clause.append([int(form)])
+            return clause
+        else:
+            clause.append([- int(form)])
+            return clause
+
+def get_worlds_by_program(formulas):
+    clauseForSolver = []
+    for i in formulas:
+        clauseForSolver.append(get_clause_for_solver(i[0],i[1]))
+    toSolve = list(itertools.chain.from_iterable(clauseForSolver))
+    toReturn = []
+    with Glucose3(bootstrap_with=toSolve) as g:
+        for m in g.enum_models():
+            toReturn.append(m)
+    return toReturn
 
 def getIsSatisfied(form, predicates, world):
     return eval(formatForm(form, predicates, world))
@@ -62,10 +104,15 @@ def getIsSatisfied(form, predicates, world):
 
 def mapBinToProgram(globalProgram, binArray):
     delpProgram = ''
+    formsToChecks = []
     for i, binElem in enumerate(binArray):
-        if binElem == 1:
-            delpProgram += globalProgram[i][0]
-    return [delpProgram, binArray]
+        if globalProgram[i][1] != 'True':
+            if binElem == 1:
+                delpProgram += globalProgram[i][0]
+                formsToChecks.append([globalProgram[i][1], True])
+            else:
+                formsToChecks.append([globalProgram[i][1], False])
+    return [delpProgram, binArray, formsToChecks]
 
 
 def mapWorldToProgram(globalProgram, em, world):

@@ -6,24 +6,26 @@ from bnCode import *
 def main(data, nvar, nvaruse, pathToSave):
     if(nvaruse <= nvar):
         af = []
-        randomVar = [str(var) for var in list(range(nvar))] # Generate variables 
+        randomVar = [str(var + 1) for var in list(range(nvar))] # Generate variables 
         rules = data["rules"]
         randomVarToUse = randomVar[:nvaruse] #Get the first nvaruse from randomVar
-        #randomVarToUse.append('True')
-        #trueProb = [0.5]
-        #otherValuesProb = [float(0.5) / float((len(randomVarToUse) - 1))] * (len(randomVarToUse) - 1)
-        #probs = otherValuesProb + trueProb
-        probs = []
+        randomVarToUse.append('True')
+        trueProb = [0.5]
+        otherValuesProb = [float(0.5) / float((len(randomVarToUse) - 1))] * (len(randomVarToUse) - 1)
+        probs = otherValuesProb + trueProb
+        #probs = []
         print(randomVarToUse)
         #print(probs)
         for rule in rules:
-            form = getForm(randomVarToUse, probs)
-            af.append([rule+';', form])
-
+            if("<- true" in rule):
+                form = getForm(randomVarToUse, probs)
+                af.append([rule+';', form])
+            else:
+                af.append([rule + ';', 'True'])
         program = {
             "randomVar":randomVar,
             "varUsed":randomVarToUse,
-            "probForVar":probs,
+            "probForVar":probs[-2:],
             "af":af
         }
 
@@ -37,8 +39,8 @@ def main(data, nvar, nvaruse, pathToSave):
         exit()
 
 def getForm(variables, probs):
-    #form = np.random.choice(variables, 1, p = probs,replace=True)
-    form = np.random.choice(variables, 1, replace=True)
+    form = np.random.choice(variables, 1, p = probs,replace=True)
+    #form = np.random.choice(variables, 1, replace=True)
     return str(form[0])
 
 

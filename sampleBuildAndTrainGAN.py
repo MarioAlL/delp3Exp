@@ -14,8 +14,11 @@ from buildNoGAN import *
 tf.get_logger().setLevel('ERROR')
 tf.get_logger().warning('test')
 
+## For test the GAN's model ##
+existYesModel, existNoModel = True, False
+yWorlds, nWorlds = 0, 0
 
-existYesModel, existNoModel = False, False
+#existYesModel, existNoModel = False, False
 uniquesWorlds, uniquePrograms = set(), set()
 bayesianNetworl, allWorlds, globalProgram, predicates = '', '', '', ''
 results = {
@@ -129,15 +132,23 @@ def samplingAndTraining(literal, pathResult):
 
 def analyzeWorld(progInBin, literal):
     global results, uniquesWorlds, uniquePrograms
+    global yWorlds, nWorlds
     
     # Build the PreDeLP Program from the program in binary
+    # delpProgram = [rules, progInBin, formulas]
     delpProgram = mapBinToProgram(globalProgram, progInBin)
     status = queryToProgram(delpProgram, literal, uniquePrograms)
+    print(progInBin)
+    #print(progInBin)
     if status[1] == 'yes':
         results['yes']['total'] += 1
+        worlds = get_worlds_by_program(delpProgram[2])
+        yWorlds += len(worlds)
         #results['yes']['prob'] = results['yes']['prob'] + prWorld
     elif status[1] == 'no':
         results['no']['total'] += 1
+        worlds = get_worlds_by_program(delpProgram[2])
+        nWorlds += len(worlds)
         #results['no']['prob'] = results['no']['prob'] + prWorld
     elif status[1] == 'undecided':
         results['und']['total'] += 1
@@ -150,6 +161,7 @@ def samplingGan(samples, pathResult, literal):
     global results
     newYesWorldsGenerated = results["yes"]['total']
     newNoWorldsGenerated = results["no"]['total']
+    numberOfAllWorlds = allWorlds
 
     print_error_msj("Starting GAN Sampling...")
 
@@ -165,7 +177,9 @@ def samplingGan(samples, pathResult, literal):
             modelsToBinYes = (modelsYes.numpy() > 0.5) * 1
             listModelYes = [model.tolist() for model in modelsToBinYes]
         else:
-            listModelYes = [world for [world, asDict] in genSamples(bayesianNetwork, nSamples, pathResult)]
+            randomNum = np.random.choice(numberOfAllWorlds, nSamples, replace=True)
+            listModelYes = list(map(lambda ints: int_to_bin_with_format(ints, dataDim)[0], randomNum))
+            #listModelYes = [world for [world, asDict] in genSamples(bayesianNetwork, nSamples, pathResult)] To work with BN
         
         noise = tf.random.normal([nSamples, dataDim]) # Controlar esto de normal o uniforme
         if existNoModel:
@@ -174,11 +188,15 @@ def samplingGan(samples, pathResult, literal):
             modelsToBinNo = (modelsNo.numpy() > 0.5) * 1
             listModelNo = [model.tolist() for model in modelsToBinNo]
         else:
-            listModelNo = [world for [world, asDict] in genSamples(bayesianNetwork, nSamples, pathResult)]
+            randomNum = np.random.choice(numberOfAllWorlds, nSamples, replace=True)
+            listModelNo = list(map(lambda ints: int_to_bin_with_format(ints, dataDim)[0], randomNum))
+            #listModelNo = [world for [world, asDict] in genSamples(bayesianNetwork, nSamples, pathResult)] To work with BN
         
         models = listModelYes + listModelNo
     else:
-        models = [world['program'] for world in np.random.choice(allWorlds, int(nSamples * 2), replace=True)] 
+        randomNum = np.random.choice(numberOfAllWorlds, int(nSamples * 2), replace=True)
+        models = list(map(lambda ints: int_to_bin_with_format(ints, dataDim)[0], randomNum))
+        #models = [world['program'] for world in np.random.choice(allWorlds, int(nSamples * 2), replace=True)]
     
     bar = IncrementalBar('Processing generated programs...', max=len(models))
     
@@ -222,10 +240,11 @@ def main(literal, models, bn, st, ss, pathResult):
     predicates = models["randomVar"]
 
     # Sampling and Training
-    samplingAndTraining(literal, pathResult)
+    #samplingAndTraining(literal, pathResult)
     # Guiaded Sampling
     samplingGan(int(ss/2), pathResult, literal)
-
+    print("Yes worlds generated: ", yWorlds)
+    print("No worlds generated: ", nWorlds)
 
 parser = argparse.ArgumentParser(description="Script to perform the build and training of the GAN")
 
