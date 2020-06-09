@@ -89,22 +89,26 @@ def getIsSatisfied(form, predicates, world):
     return eval(formatForm(form, predicates, world))
 
 
-def mapBinToProgram(globalProgram, binArray, inCNF):
+def mapBinToProgram(globalProgram, binArray):
+    evidence = {}
     delpProgram = ''
-    formsToChecks = []
-    for i, binElem in enumerate(binArray):
-        if binElem == 1:
-            delpProgram += globalProgram[i][0]
-            if globalProgram[i][1] != 'True':
-                formsToChecks.append(inCNF[i][0])
-        else:
-            if globalProgram[i][1] != 'True':
-                formsToChecks.append(inCNF[i][1])
+    for index, value in enumerate(globalProgram):
+        if value[1].isdigit() and not int(value[1]) in evidence:
+            evidence[int(value[1])] = binArray[index]
+            if binArray[index] == 1: delpProgram += value[0]
+        elif value[1] == 'True':
+            if binArray[index] == 1:
+                delpProgram += value[0]
             else:
-                delpProgram = 'Error' #Incorrect program
+                return -1 # Incorrect Program
                 break
-    return [delpProgram, binArray, formsToChecks]
+        elif evidence[int(value[1])] != binArray[index]:
+                return -1 # Inconsistent Program
+                break
+    
+    return [delpProgram, binArray, evidence]
 
+#print(mapBinToProgram([["a","1"],["b","True"],["c","3"],["d","3"]],[0,1,0,1]))
 
 def mapWorldToProgram(globalProgram, em, world):
     delpProgram = ''
@@ -184,11 +188,5 @@ def int_to_bin_with_format(number, lenght):
     evidence = { i : world[i] for i in range(0, len(world) ) } #Dict
     return [world, evidence]
 
-def getFormula(variables, probs):
-    atoms = np.random.choice(variables, 2, p= probs, replace=True)
-    if 'True' in atoms:
-        return 'True'
-    else:
-        operator = np.random.choice(['and','or'], 1, replace=True)
-        return str(atoms[0] + ' ' + operator[0] + ' ' + atoms[1])
+
 

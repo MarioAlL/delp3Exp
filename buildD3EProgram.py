@@ -11,15 +11,15 @@ def main(data, nvar, nvaruse, pathToSave):
         randomVarToUse = randomVar[:nvaruse] #Get the first nvaruse from randomVar
         
         randomVarToUse.append('True')
-        trueProb = [0.3]
-        otherValuesProb = [float(0.7) / float((len(randomVarToUse) - 1))] * (len(randomVarToUse) - 1)
-        probs = otherValuesProb + trueProb
+        #trueProb = [0.3]
+        #otherValuesProb = [float(0.7) / float((len(randomVarToUse) - 1))] * (len(randomVarToUse) - 1)
+        #probs = otherValuesProb + trueProb
         
-        #probs = []
+        probs = []
         #print(randomVarToUse)
         #print(probs)
         for rule in rules:
-            form = getFormula(randomVarToUse, probs)
+            form = getForm(randomVarToUse, probs)
             af.append([rule+';', form])
 
         program = {
@@ -41,7 +41,20 @@ def main(data, nvar, nvaruse, pathToSave):
 def getForm(variables, probs):
     #form = np.random.choice(variables, 1, p = probs,replace=True)
     form = np.random.choice(variables, 1, replace=True)
+    #neg = np.random.choice(["","~"], 1, replace=True)
     return str(form[0])
+
+def getFormula(variables, probs):
+    if(len(probs) > 0):
+        atoms = np.random.choice(variables, 2, p= probs, replace=True)
+    else:
+        atoms = np.random.choice(variables, 2, replace=True)
+
+    if 'True' in atoms:
+        return 'True'
+    else:
+        operator = np.random.choice(['and','or'], 1, replace=True)
+        return str(atoms[0] + ' ' + operator[0] + ' ' + atoms[1])
 
 
 def checkNumberElems(nvar, nvaruse):

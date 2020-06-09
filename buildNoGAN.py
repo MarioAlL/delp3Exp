@@ -50,7 +50,7 @@ def make_generator_model(dataDimension):
 def make_discriminator_model(dataDimension):
     model = tf.keras.Sequential()
     model.add(layers.Flatten(input_shape=(dataDimension,)))
-    model.add(layers.Dense(128, activation='relu'))
+    model.add(layers.Dense(dataDimension, activation='relu'))
     model.add(layers.Dense(1))
 
     return model
@@ -95,7 +95,7 @@ noise_dim = 0 # Noise dim, this is equal to the Generator output array
 # This annotation causes the function to be "compiled".
 @tf.function
 def train_step(vectors):
-    noise = tf.random.uniform([BATCH_SIZE, noise_dim]) # Controlar esto de normal o uniforme
+    noise = tf.random.normal([BATCH_SIZE, noise_dim]) # Controlar esto de normal o uniforme
 
     with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
         generated_vectors = generator(noise, training=True)
@@ -151,7 +151,7 @@ def configureTrainingNo(dataDim, dataset, pathResult, timeout):
     global BATCH_SIZE
 
     BATCH_SIZE = len(dataset)
-    EPOCHS = 1000
+    EPOCHS = 2000
     train_dataset = tf.data.Dataset.from_tensor_slices(dataset)
     train_dataset = train_dataset.shuffle(SHUFFLE_BUFFER_SIZE).batch(BATCH_SIZE)
     dataDimension = dataDim

@@ -1,6 +1,7 @@
 import networkx as nx
 from random import randint
 import pyAgrum as gum
+import pyAgrum.lib.bn2graph as gumGraph
 import os
 from csv import DictReader
 from progress.spinner import Spinner
@@ -12,7 +13,7 @@ def random_dag(nodes, edges):
     """Generate a random Directed Acyclic Graph (DAG) with a given number of nodes and edges."""
     G = nx.DiGraph()
     for i in range(nodes):
-        G.add_node(i)
+        G.add_node(i + 1)
     while edges > 0:
         a = randint(0,nodes-1)
         b=a
@@ -37,6 +38,7 @@ def buildAndSaveBN(nNodes, nEdges, pathToSave):
     for edge in edges:
         bn.addArc(edge[0],edge[1])
     bn.generateCPTs()
+    gumGraph.dotize(bn, pathToSave+'BayesianNetwork','pdf')
     gum.saveBN(bn,pathToSave+"bn.bifxml")
 
 def loadBN(path):
@@ -45,6 +47,17 @@ def loadBN(path):
     generator = gum.BNDatabaseGenerator(bn)
     ie = gum.LazyPropagation(bn)
     return bn
+
+def getProbWorlds(worlds):
+    prob = 0.00
+    # print("\n")
+    # spinner = Spinner()
+    for world in worlds:
+        evidence = { i : 1 if world[i] > 0 else 0 for i in range(0, len(world) ) }
+        prob += getSamplingProb(evidence)
+    #     spinner.next()
+    # spinner.finish()
+    return prob
 
 def getSamplingProb(evidence):
     # Setting the inference method

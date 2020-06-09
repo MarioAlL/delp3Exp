@@ -11,16 +11,17 @@ from progress.bar import IncrementalBar
 from datasets import *
 from buildYesGAN import *
 from buildNoGAN import *
+from toCNF import *
 tf.get_logger().setLevel('ERROR')
 tf.get_logger().warning('test')
 
 ## For test the GAN's model ##
-existYesModel, existNoModel = True, False
-yWorlds, nWorlds = 0, 0
+##existYesModel, existNoModel = True, True
+incorrectProgram = 0
 
-#existYesModel, existNoModel = False, False
+existYesModel, existNoModel = False, False
 uniquesWorlds, uniquePrograms = set(), set()
-bayesianNetworl, allWorlds, globalProgram, predicates = '', '', '', ''
+bayesianNetworl, allWorlds, globalProgram, predicates, inCNF = '', '', '', '', ''
 results = {
     'yes':{
         'total':0,
@@ -131,45 +132,65 @@ def samplingAndTraining(literal, pathResult):
     results['timeExecution'].append(time.time() - initialTime) # Time to training
 
 def analyzeWorld(progInBin, literal):
-    global results, uniquesWorlds, uniquePrograms
-    global yWorlds, nWorlds
-    
-    # Build the PreDeLP Program from the program in binary
-    # delpProgram = [rules, progInBin, formulas]
+    global results, uniquesWorlds, uniquePrograms, incorrectProgram, inconsistent
+    global yesPrograms, noPrograms
+    # Build the PreDeLP Program from the program in binary (if is a correct program)
+    # delpProgram = [rules, progInBin, evidence]
     delpProgram = mapBinToProgram(globalProgram, progInBin)
-    status = queryToProgram(delpProgram, literal, uniquePrograms)
-    print(progInBin)
-    #print(progInBin)
-    if status[1] == 'yes':
-        results['yes']['total'] += 1
-        worlds = get_worlds_by_program(delpProgram[2])
-        yWorlds += len(worlds)
-        #results['yes']['prob'] = results['yes']['prob'] + prWorld
-    elif status[1] == 'no':
-        results['no']['total'] += 1
-        worlds = get_worlds_by_program(delpProgram[2])
-        nWorlds += len(worlds)
-        #results['no']['prob'] = results['no']['prob'] + prWorld
-    elif status[1] == 'undecided':
-        results['und']['total'] += 1
-        #results['und']['prob'] = results['und']['prob'] + prWorld
-    elif status[1] == 'unknown':
-        results['unk']['total'] += 1
-        #results['unk']['prob'] = results['unk']['prob'] + prWorld
+    if(delpProgram != -1):
+        aux = len(uniquePrograms)
+        status = queryToProgram(delpProgram, literal, uniquePrograms)
+        if aux != len(uniquePrograms):
+            if status[1] == 'yes':
+                probs = getSamplingProb(delpProgram[2])
+                yesPrograms.append(probs)
+                results['yes']['prob'] = results['yes']['prob'] + probs
+                # worlds = get_worlds_by_program(delpProgram[2])
+                # if(len(worlds) != 0):
+                #     #toComplete = completeWorlds(len(predicates) - len(worlds[0]))
+                #     #completedWorlds = [i[0] + i[1] for i in itertools.product(worlds, toComplete)]
+                #     results['yes']['total'] += len(worlds)
+                #     probs = getProbWorlds(worlds)
+                #     results['yes']['prob'] = results['yes']['prob'] + probs
+                # else:
+                #     inconsistent += 1
+            elif status[1] == 'no':
+                probs = getSamplingProb(delpProgram[2])
+                noPrograms.append(probs)
+                results['no']['prob'] = results['no']['prob'] + probs
+                # worlds = get_worlds_by_program(delpProgram[2])
+                # if(len(worlds) != 0):
+                #     #toComplete = completeWorlds(len(predicates) - len(worlds[0]))
+                #     #completedWorlds = [i[0] + i[1] for i in itertools.product(worlds, toComplete)]
+                #     results['no']['total'] += len(worlds)
+                #     probs = getProbWorlds(worlds)
+                #     results['no']['prob'] = results['no']['prob'] + probs
+                # else:
+                #     inconsistent += 1
+            elif status[1] == 'undecided':
+                # worlds = get_worlds_by_program(delpProgram[2])
+                results['und']['total'] += 1
+                # probs = getProbWorlds(worlds)
+                # results['und']['prob'] = results['und']['prob'] + probs
+            elif status[1] == 'unknown':
+                # worlds = get_worlds_by_program(delpProgram[2])
+                results['unk']['total'] += 1
+                # probs = getProbWorlds(worlds)
+                # results['unk']['prob'] = results['unk']['prob'] + probs
+    else:
+        #Incorrect Program
+        incorrectProgram += 1
 
 def samplingGan(samples, pathResult, literal):
-    global results
-    newYesWorldsGenerated = results["yes"]['total']
-    newNoWorldsGenerated = results["no"]['total']
+    global results, uniquePrograms
     numberOfAllWorlds = allWorlds
-
+    uniquePrograms = set()
     print_error_msj("Starting GAN Sampling...")
-
     nSamples = int(samples)
     initialTime = time.time()
-    # Check if models exists 
+    # Check if models exists
+    dataDim = len(globalProgram) 
     if existYesModel or existNoModel:
-        dataDim = len(globalProgram)
         noise = tf.random.normal([nSamples, dataDim]) # Controlar esto de normal o uniforme
         if existYesModel:
             new_modelYes = tf.keras.models.load_model(pathResult + 'my_model_yes/')
@@ -217,34 +238,33 @@ def samplingGan(samples, pathResult, literal):
     with open(pathResult + 'sampleGanResults.json', 'w') as outfile:  
         json.dump(results, outfile, indent=4)
 
-    newYesWorldsGenerated = results["yes"]['total'] - newYesWorldsGenerated
-    newNoWorldsGenerated = results["no"]['total'] - newNoWorldsGenerated
-    print_error_msj("New yes worlds generated by GAN: %s" % (newYesWorldsGenerated))
-    print_error_msj("New no worlds generated by GAN: %s" % (newNoWorldsGenerated))
-
     #print results
     print_ok_ops("Results: ")
     print("Unique worlds: ", end='')
     print_ok_ops("%s" % (len(uniquesWorlds)))
     print("Unique programs: ", end='')
-    print_ok_ops("%s" % (len(uniquePrograms)))
+    print_ok_ops("%s" % (len(uniquePrograms) - inconsistent))
+    print("Incorrect Programs: ", end='')
+    print_error_msj("%s" % (incorrectProgram))
+    print("Inconsistent Programs: ", end='')
+    print_error_msj("%s" % (inconsistent))
     print_ok_ops("Prob(%s) = [%.4f, %.4f]" % (literal, results['l'], results['u']))
 
 def main(literal, models, bn, st, ss, pathResult):
-    global allWorlds, globalProgram, predicates, numberOfWorlds, bayesianNetwork
+    global allWorlds, globalProgram, predicates, numberOfWorlds, bayesianNetwork, inCNF
     
     bayesianNetwork = bn
     allWorlds = st
     #allWorlds = genSamples(bn, st, pathResult)
     globalProgram = models["af"]
     predicates = models["randomVar"]
-
+    
+    formulas = [form for [rules,form] in globalProgram]
+    inCNF = generateClauses(formulas)
     # Sampling and Training
-    #samplingAndTraining(literal, pathResult)
+    samplingAndTraining(literal, pathResult)
     # Guiaded Sampling
     samplingGan(int(ss/2), pathResult, literal)
-    print("Yes worlds generated: ", yWorlds)
-    print("No worlds generated: ", nWorlds)
 
 parser = argparse.ArgumentParser(description="Script to perform the build and training of the GAN")
 
@@ -253,22 +273,22 @@ parser.add_argument('-l',
                     action = 'store',
                     dest = 'literal',
                     required = True)
-parser.add_argument('-p',
-                    help='The DeLP3E program path',
-                    action='store',
-                    dest='program',
-                    type=getDataFromFile,
-                    required=True)
-parser.add_argument('-bn',
-                    help='The Bayesian Network file path (only "bifxml" for now)',
-                    action='store',
-                    dest='bn',
-                    type=loadBN,
-                    required=True)
-parser.add_argument('-pathR',
-                    help='Path to save the results',
-                    dest='pathResult',
-                    required=True)
+# parser.add_argument('-p',
+#                     help='The DeLP3E program path',
+#                     action='store',
+#                     dest='program',
+#                     type=getDataFromFile,
+#                     required=True)
+# parser.add_argument('-bn',
+#                     help='The Bayesian Network file path (only "bifxml" for now)',
+#                     action='store',
+#                     dest='bn',
+#                     type=loadBN,
+#                     required=True)
+# parser.add_argument('-pathR',
+#                     help='Path to save the results',
+#                     dest='pathResult',
+#                     required=True)
 parser.add_argument('-st',
                     help='Number of samples to search a training dataset',
                     dest='samplesT',
@@ -281,5 +301,11 @@ parser.add_argument('-sg',
                     required=True)
 arguments = parser.parse_args()
 
-main(arguments.literal, arguments.program, arguments.bn, arguments.samplesT, arguments.samplesS, arguments.pathResult)
+pathToProgram = "/home/mario/results/models.json"
+pathToBN = "/home/mario/results/bn.bifxml"
+pathResult = "/home/mario/results/"
+program = getDataFromFile(pathToProgram)
+bn = loadBN(pathToBN)
+
+main(arguments.literal, program, bn, arguments.samplesT, arguments.samplesS, pathResult)
 

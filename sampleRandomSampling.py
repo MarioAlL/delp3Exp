@@ -122,22 +122,22 @@ parser.add_argument('-l',
                     action='store',
                     dest='literal',
                     required=True)
-parser.add_argument('-p',
-                    help='The DeLP3E program path',
-                    action='store',
-                    dest='program',
-                    type=getDataFromFile,
-                    required=True)
-parser.add_argument('-bn',
-                    help='The Bayesian Network file path (only "bifxml" for now)',
-                    action='store',
-                    dest='bn',
-                    type=loadBN,
-                    required=True)
-parser.add_argument('-pathR',
-                    help='Path to save the results (with file name)',
-                    dest='pathResult',
-                    required=True)
+# parser.add_argument('-p',
+#                     help='The DeLP3E program path',
+#                     action='store',
+#                     dest='program',
+#                     type=getDataFromFile,
+#                     required=True)
+# parser.add_argument('-bn',
+#                     help='The Bayesian Network file path (only "bifxml" for now)',
+#                     action='store',
+#                     dest='bn',
+#                     type=loadBN,
+#                     required=True)
+# parser.add_argument('-pathR',
+#                     help='Path to save the results (with file name)',
+#                     dest='pathResult',
+#                     required=True)
 parser.add_argument('-s',
                     help='Number of samples (in random setting)',
                     dest='samples',
@@ -145,4 +145,10 @@ parser.add_argument('-s',
                     required=True)
 arguments = parser.parse_args()
 
-main(arguments.literal, arguments.samples, arguments.program, arguments.bn, arguments.pathResult)
+pathToProgram = "/home/mario/results/models.json"
+pathToBN = "/home/mario/results/bn.bifxml"
+pathResult = "/home/mario/results/"
+program = getDataFromFile(pathToProgram)
+bn = loadBN(pathToBN)
+
+main(arguments.literal, arguments.samples, program, bn, pathResult)
