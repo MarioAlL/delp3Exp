@@ -5,8 +5,8 @@ use_criterion(more_specific).
  i <- true.
  e <- d.
  e <- ~a,f.
- e <- i,g.
- e -< h,~b,g.
+ ~e <- i,g.
+ ~e -< h,~b,g.
  b -< j.
  b <- ~d,f.
  e <- b,g.

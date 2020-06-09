@@ -9,19 +9,19 @@ def main(data, nvar, nvaruse, pathToSave):
         randomVar = [str(var + 1) for var in list(range(nvar))] # Generate variables 
         rules = data["rules"]
         randomVarToUse = randomVar[:nvaruse] #Get the first nvaruse from randomVar
+        
         randomVarToUse.append('True')
-        trueProb = [0.5]
-        otherValuesProb = [float(0.5) / float((len(randomVarToUse) - 1))] * (len(randomVarToUse) - 1)
+        trueProb = [0.3]
+        otherValuesProb = [float(0.7) / float((len(randomVarToUse) - 1))] * (len(randomVarToUse) - 1)
         probs = otherValuesProb + trueProb
+        
         #probs = []
-        print(randomVarToUse)
+        #print(randomVarToUse)
         #print(probs)
         for rule in rules:
-            if("<- true" in rule):
-                form = getForm(randomVarToUse, probs)
-                af.append([rule+';', form])
-            else:
-                af.append([rule + ';', 'True'])
+            form = getFormula(randomVarToUse, probs)
+            af.append([rule+';', form])
+
         program = {
             "randomVar":randomVar,
             "varUsed":randomVarToUse,
@@ -39,8 +39,8 @@ def main(data, nvar, nvaruse, pathToSave):
         exit()
 
 def getForm(variables, probs):
-    form = np.random.choice(variables, 1, p = probs,replace=True)
-    #form = np.random.choice(variables, 1, replace=True)
+    #form = np.random.choice(variables, 1, p = probs,replace=True)
+    form = np.random.choice(variables, 1, replace=True)
     return str(form[0])
 
 
