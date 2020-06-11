@@ -151,7 +151,7 @@ def configureTrainingYes(dataDim, dataset, pathResult, timeout):
     global BATCH_SIZE
     
     BATCH_SIZE = len(dataset)
-    EPOCHS = 500
+    EPOCHS = 2000
     train_dataset = tf.data.Dataset.from_tensor_slices(dataset)
     train_dataset = train_dataset.shuffle(SHUFFLE_BUFFER_SIZE).batch(BATCH_SIZE)
     dataDimension = dataDim
