@@ -105,7 +105,6 @@ def mapBinToProgram(globalProgram, binArray):
         elif evidence[int(value[1])] != binArray[index]:
                 return -1 # Inconsistent Program
                 break
-    
     return [delpProgram, binArray, evidence]
 
 #print(mapBinToProgram([["a","1"],["b","True"],["c","3"],["d","3"]],[0,1,0,1]))
