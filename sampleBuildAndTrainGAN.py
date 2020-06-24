@@ -348,5 +348,3 @@ myBN = BayesNetwork('TEST','/home/mario/results/')
 myBN.load_bn()
 main(arguments.literal, program, myBN, arguments.samplesT, arguments.samplesS, pathResult)
 
-main(arguments.literal, program, bn, arguments.samplesT, arguments.samplesS, pathResult)
-
