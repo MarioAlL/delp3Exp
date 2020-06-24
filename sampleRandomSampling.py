@@ -1,11 +1,7 @@
-import numpy as np
-import sys
 from progress.bar import IncrementalBar
-from utilsExp import *
-from database import*
 from consultDeLP import *
 import argparse
-from bnCode import *
+from em.bn import *
 
 uniquePrograms, uniquesWorlds = set(), set()
 bayesianNetwork, allWorlds, globalProgram, predicates = '', '', '', ''
@@ -57,7 +53,7 @@ def startSampling(literal, pathResult):
             uniquesWorlds.add(worldAsTuple)
             world = worldData[0]
             evidence = worldData[1]
-            prWorld = getSamplingProb(evidence)
+            prWorld = bayesianNetwork.get_sampling_prob(evidence)
             # Build the PreDeLP Program for a world
             delpProgram = mapWorldToProgram(globalProgram, predicates, world)
             status = queryToProgram(delpProgram, literal, uniquePrograms)
@@ -146,9 +142,10 @@ parser.add_argument('-s',
 arguments = parser.parse_args()
 
 pathToProgram = "/home/mario/results/models.json"
-pathToBN = "/home/mario/results/bn.bifxml"
+pathToBN = "/home/mario/results/TEST.bifxml"
 pathResult = "/home/mario/results/"
 program = getDataFromFile(pathToProgram)
-bn = loadBN(pathToBN)
+myBN = BayesNetwork('TEST','/home/mario/results/')
+myBN.load_bn()
 
-main(arguments.literal, arguments.samples, program, bn, pathResult)
+main(arguments.literal, arguments.samples, program, myBN, pathResult)

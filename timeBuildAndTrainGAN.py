@@ -1,16 +1,9 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 import os
-import argparse
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import tensorflow as tf
-import numpy as np
-import signal
-from tensorflow.keras import layers
-import time
-from bnCode import *
-from progress.spinner import Spinner
-from datasets import *
+from em.bnCode import *
 from buildYesGAN import *
 from buildNoGAN import *
 tf.get_logger().setLevel('ERROR')

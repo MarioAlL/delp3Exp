@@ -1,7 +1,15 @@
 from utilsExp import *
 import argparse
 import numpy as np
-from bnCode import *
+from em.bn import *
+import pyAgrum as gum
+
+def adaptBN(vars):
+    myBN = BayesNetwork('TEST','/home/mario/results/')
+    myBN.load_bn()
+    myBN.make_CPTs(vars,0.8,1)
+    gum.saveBN(myBN.bn, myBN.path + myBN.name + '.bifxml')
+    print("BN adapted...")
 
 def main(data, nvar, nvaruse, pathToSave):
     if(nvaruse <= nvar):
@@ -33,7 +41,10 @@ def main(data, nvar, nvaruse, pathToSave):
         
         #For build a random Bayesian Network
         nodes = len(randomVar)
-        buildAndSaveBN(nodes, nodes, pathToSave)# Generate and save a random Bayesian Net
+        myBN = BayesNetwork('TEST',pathToSave)
+        myBN.build_save_random_BN(nodes, nodes, False)
+
+        #buildAndSaveBN(nodes, nodes, pathToSave)# Generate and save a random Bayesian Net
     else:
         print_error_msj("Error")
         exit()
@@ -91,4 +102,5 @@ parser.add_argument('-outPath',
 arguments = parser.parse_args()
 
 
-main(arguments.data, arguments.nvar, arguments.nvaruse, arguments.pathToSave)
+#main(arguments.data, arguments.nvar, arguments.nvaruse, arguments.pathToSave)
+adaptBN([13,4,12])

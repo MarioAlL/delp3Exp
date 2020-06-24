@@ -1,14 +1,6 @@
-from __future__ import absolute_import, division, print_function, unicode_literals
 import os
-import argparse
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import tensorflow as tf
-import numpy as np
-from tensorflow.keras import layers
-import time
-from bnCode import *
-from progress.bar import IncrementalBar
-from datasets import *
 from buildYesGAN import *
 from buildNoGAN import *
 from toCNF import *
@@ -71,7 +63,7 @@ def searchTrainDataset(literal):
             uniquesWorlds.add(worldAsTuple)
             world = worldData[0]
             evidence = worldData[1]
-            prWorld = getSamplingProb(evidence)
+            prWorld = bayesianNetwork.get_sampling_prob(evidence)
             # Build the PreDeLP Program for a world
             # delpProgram = [[rules], [binary]]
             delpProgram = mapWorldToProgram(globalProgram, predicates, world)
@@ -152,7 +144,7 @@ def analyzeWorld(world, literal):
     if(not y in uniquesWorlds):
         uniquesWorlds.add(y)
         evidence = { i : world[i] for i in range(0, len(world) ) } #Dict
-        prWorld = getSamplingProb(evidence)
+        prWorld = bayesianNetwork.get_sampling_prob(evidence)
         # Build the PreDeLP Program for a world
         delpProgram = mapWorldToProgram(globalProgram, predicates, world)
         status = queryToProgram(delpProgram, literal, uniquePrograms)
@@ -349,10 +341,10 @@ parser.add_argument('-sg',
 arguments = parser.parse_args()
 
 pathToProgram = "/home/mario/results/models.json"
-pathToBN = "/home/mario/results/bn.bifxml"
+pathToBN = "/home/mario/results/TEST.bifxml"
 pathResult = "/home/mario/results/"
 program = getDataFromFile(pathToProgram)
-bn = loadBN(pathToBN)
-
-main(arguments.literal, program, bn, arguments.samplesT, arguments.samplesS, pathResult)
+myBN = BayesNetwork('TEST','/home/mario/results/')
+myBN.load_bn()
+main(arguments.literal, program, myBN, arguments.samplesT, arguments.samplesS, pathResult)
 
