@@ -163,10 +163,9 @@ def writeResult(results, times, pathFile):
         json.dump(times, outfile)
 
 
-def writeLebelledProgram(program, pathFile):
-    with open(pathFile + '.json', 'w') as outfile:
-        json.dump(program, outfile, indent=4)
-
+def write_json_file(content, path_file):
+    with open(path_file + '.json', 'w') as outfile:
+        json.dump(content, outfile, indent = 4)
 
 def writeTimesGAN(results, pathFile, literalStatus):
     with open(pathFile + '/timesForTraining' + ''.join(map(str, literalStatus)) + '.json', 'w') as outfile:

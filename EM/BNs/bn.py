@@ -1,6 +1,5 @@
 # Class for Bayesian Network
 import json
-
 import networkx as nx
 import random
 import pyAgrum as gum
@@ -29,14 +28,16 @@ class BayesNetwork:
         dGraphEdges = dGraph.edges()
         dGraphEdges = [(str(A), str(B)) for (A, B) in dGraphEdges]
         bn = gum.BayesNet(self.name)
-        [bn.add(gum.LabelizedVariable(str(var),str(var),2)) for var in dGraphNodes]
+        [bn.add(gum.LabelizedVariable(str(var),str(var),2)) for var
+                                                                in dGraphNodes]
         for edge in dGraphEdges:
             bn.addArc(edge[0], edge[1])
         if randomCPTs:
-            bn.generateCPTs() # For generate all CPTs
-        gumGraph.dotize(bn, self.path + self.name, 'pdf') # To graph and save BN
+            # For generate all CPTs
+            bn.generateCPTs()
+        # To graph and save BN
+        gumGraph.dotize(bn, self.path + self.name, 'pdf')
         gum.saveBN(bn, self.path + self.name + '.bifxml')
-        print("saved")
         self.generator = gum.BNDatabaseGenerator(bn)
         self.ie = gum.LazyPropagation(bn)
         self.bn = bn
@@ -45,12 +46,15 @@ class BayesNetwork:
     def build_save_BN(self, dGraphNodes, dGraphEdges, randomCPTs):
         dGraphEdges = [(str(A), str(B)) for (A, B) in dGraphEdges]
         bn = gum.BayesNet(self.name)
-        [bn.add(gum.LabelizedVariable(str(var),str(var),2)) for var in dGraphNodes]
+        [bn.add(gum.LabelizedVariable(str(var),str(var),2)) for var
+                                                                in dGraphNodes]
         for edge in dGraphEdges:
             bn.addArc(edge[0], edge[1])
         if randomCPTs:
-            bn.generateCPTs() # For generate all CPTs
-        gumGraph.dotize(bn, self.path + self.name, 'pdf') # To graph and save BN
+            # For generate all CPTs
+            bn.generateCPTs()
+        # To graph and save BN
+        gumGraph.dotize(bn, self.path + self.name, 'pdf')
         gum.saveBN(bn, self.path + self.name + '.bifxml')
         self.generator = gum.BNDatabaseGenerator(bn)
         self.ie = gum.LazyPropagation(bn)
@@ -98,7 +102,8 @@ class BayesNetwork:
                         newCPT = [float(complementnode), float(prnode)]
                     else:
                         newCPT = [float(prnode), float(complementnode)]
-                    self.bn.cpt(node)[{str(parents[index]):value for index, value in enumerate(parVal)}] = newCPT
+                    self.bn.cpt(node)[{str(parents[index]):value
+                                for index, value in enumerate(parVal)}] = newCPT
             else:
                 prnode = "{:.2f}".format(random.uniform(alpha, 1))
                 complementnode = "{:.2f}".format(1.00 - float(prnode))
@@ -136,7 +141,8 @@ class BayesNetwork:
     def get_probs_Worlds(self, worlds):
         prob = 0.00
         for world in worlds:
-            evidence = {i: 1 if world[i] > 0 else 0 for i in range(0, len(world))}
+            evidence = {i: 1 if world[i] > 0 else 0 for i
+                                                    in range(0, len(world))}
             prob += self.get_sampling_prob(evidence)
         return prob
 
@@ -175,7 +181,8 @@ class BayesNetwork:
         return samplesToReturn
 
     def show_prob_dist(self, nSamples):
-        samples = [''.join(str(x) for x in world) for [world, asDict] in self.gen_samples(nSamples)]
+        samples = [''.join(str(x) for x in world) for [world, asDict]
+                                                in self.gen_samples(nSamples)]
         toHist=[int(elem,2) for elem in samples]
         plt.hist(toHist, 10)
         plt.show()
@@ -208,13 +215,15 @@ def create_random_dag(nodes, edges):
 def entropy_test():
     cantNodes = [5, 10, 15]
     alphas = [0.9, 0.95, 0.99]
-    nodesToSelect = ['nodes_no_parents','nodes_2_parents', 'nodes_more_parents', 'nodes_with_childrens']
+    nodesToSelect = ['nodes_no_parents','nodes_2_parents',
+                    'nodes_more_parents', 'nodes_with_childrens']
 
     for alpha in alphas:
         for nodes in cantNodes:
             entropy_in_network = []
             for netNumber in range(9):
-                bn = BayesNetwork('BN-' + str(nodes) + '-[' + str(netNumber) + ']', '/home/mario/entropy/')
+                bn = BayesNetwork('BN-' + str(nodes) + '-[' + str(netNumber) + \
+                                                    ']', '/home/mario/entropy/')
                 bn.build_save_random_BN(nodes, nodes, False)
                 bnNodes = bn.get_nodes_information()
                 entropy = []
@@ -246,7 +255,8 @@ def entropy_test():
             e4b = e4b / 10
             e4a = e4a / 10
 
-            with open('/home/mario/entropy/entropy-' + str(alpha) + '-' + str(nodes) + '.json', 'w') as outFile:
+            with open('/home/mario/entropy/entropy-' + str(alpha) + '-' + \
+                                        str(nodes) + '.json', 'w') as outFile:
                 entropyResults = {
                     'nodes_no_parents': [e1b, e1a],
                     'nodes_2_parents': [e2b, e2a],
