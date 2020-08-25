@@ -1,0 +1,3 @@
+& \multicolumn{1}{c|}{3312} & \multicolumn{1}{c|}{13,25}   & \multicolumn{1}{c|}{3057}  & \multicolumn{1}{c|}{12,23}   & \multicolumn{1}{c|}{0}  & \multicolumn{1}{c|}{0,00} & \multicolumn{1}{c|}{0} & \multicolumn{1}{c|}{0}  & \multicolumn{1}{c|}{$[0,00029903020153420663-0,9999644009131708]$}                           & \multicolumn{1}{c|}{33.89554834365845}
+
+

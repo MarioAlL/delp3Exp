@@ -10,6 +10,7 @@ from progress.spinner import Spinner
 import matplotlib.pyplot as plt
 import itertools
 import math
+import numpy as np
 
 
 class BayesNetwork:
@@ -87,24 +88,38 @@ class BayesNetwork:
     def make_CPTs(self, nodes, alpha):
         for node in nodes:
             parents = list(self.bn.parents(node))
-            prnode = "{:.2f}".format(random.uniform(alpha, 1))
-            complementnode = "{:.2f}".format(1.00 - float(prnode))
-            newCPT = [float(complementnode), float(prnode)]
             if len(parents) != 0:
                 parValues = list(itertools.product([1, 0], repeat=len(parents)))
                 for parVal in parValues:
+                    prnode = "{:.2f}".format(random.uniform(alpha, 1))
+                    complementnode = "{:.2f}".format(1.00 - float(prnode))
+                    change_prob = np.random.random()
+                    if change_prob > 0.50:
+                        newCPT = [float(complementnode), float(prnode)]
+                    else:
+                        newCPT = [float(prnode), float(complementnode)]
                     self.bn.cpt(node)[{str(parents[index]):value for index, value in enumerate(parVal)}] = newCPT
             else:
+                prnode = "{:.2f}".format(random.uniform(alpha, 1))
+                complementnode = "{:.2f}".format(1.00 - float(prnode))
+                change_prob = np.random.random()
+                if change_prob > 0.50:
+                    newCPT = [float(complementnode), float(prnode)]
+                else:
+                    newCPT = [float(prnode), float(complementnode)]
                 self.bn.cpt(node).fillWith(newCPT)
         othersnodes = list(self.bn.nodes())
         for othernode in othersnodes:
             if not othernode in nodes:
                 self.bn.generateCPT(othernode)
+        gum.saveBN(self.bn, self.path + self.name + '.bifxml')
+        print("CPTS adapted")
 
     def getEntropy(self):
         cNodes = len(self.structure[0])
         samples = list(itertools.product([1,0], repeat=cNodes))
         sum = 0.00
+        print(len(samples))
         spinner = Spinner("Calculating entropy...")
         for sample in samples:
             evidence = {i: sample[i] for i in range(0, len(sample))}
@@ -191,29 +206,51 @@ def create_random_dag(nodes, edges):
     return G
 
 def entropy_test():
-    cantNodes = [5, 10, 20]
-    alphas = [0.6, 0.8, 0.9]
-    results = {
-        'entropy_5': [],
-        'entropy_10': [],
-        'entropy_20': [],
-    }
+    cantNodes = [5, 10, 15]
+    alphas = [0.9, 0.95, 0.99]
+    nodesToSelect = ['nodes_no_parents','nodes_2_parents', 'nodes_more_parents', 'nodes_with_childrens']
 
-    for cant in cantNodes:
-        for i in range(10):
-            bn = BayesNetwork('BN' + str(i), '/home/mario/entropy/')
-            bn.build_save_random_BN(cant, cant, False)
-            nodesInformation = bn.get_nodes_information()
-            entropies = []
-            for alpha in alphas:
-                bn.make_CPTs(nodesInformation['nodes_with_childrens'], alpha)
-                entropy = bn.getEntropy()
-                entropies.append(entropy)
-            results['entropy_' + str(cant)].append(entropies)
-        print("\n")
-        with open('/home/mario/entropy/entropyResults' + str(cant) + '.json', 'w') as outfile:
-            json.dump(results, outfile, indent = 4)
+    for alpha in alphas:
+        for nodes in cantNodes:
+            entropy_in_network = []
+            for netNumber in range(9):
+                bn = BayesNetwork('BN-' + str(nodes) + '-[' + str(netNumber) + ']', '/home/mario/entropy/')
+                bn.build_save_random_BN(nodes, nodes, False)
+                bnNodes = bn.get_nodes_information()
+                entropy = []
+                for selectedNodes in nodesToSelect:
+                    bn.make_CPTs([], alpha) # CPTs Random
+                    entropyBefore = bn.getEntropy()
+                    bn.make_CPTs(bn.structure[0], alpha)
+                    entropyAfter = bn.getEntropy()
+                    entropy.append([entropyBefore, entropyAfter])
+                entropy_in_network.append(entropy)
+            e1b, e2b, e3b, e4b = 0, 0, 0, 0
+            e1a, e2a, e3a, e4a = 0, 0, 0, 0
+            for elem in entropy_in_network:
+                e1b += elem[0][0]
+                e1a += elem[0][1]
+                e2b += elem[1][0]
+                e2a += elem[1][1]
+                e3b += elem[2][0]
+                e3a += elem[2][1]
+                e4b += elem[3][0]
+                e4a += elem[3][1]
 
+            e1b = e1b / 10
+            e1a = e1a / 10
+            e2b = e2b / 10
+            e2a = e2a / 10
+            e3b = e3b / 10
+            e3a = e3a / 10
+            e4b = e4b / 10
+            e4a = e4a / 10
 
-
-#entropy_test()
+            with open('/home/mario/entropy/entropy-' + str(alpha) + '-' + str(nodes) + '.json', 'w') as outFile:
+                entropyResults = {
+                    'nodes_no_parents': [e1b, e1a],
+                    'nodes_2_parents': [e2b, e2a],
+                    'nodes_more_parents': [e3b, e3a],
+                    'nodes_with_childrens': [e4b, e4a]
+                }
+                json.dump(entropyResults, outFile, indent = 4)
