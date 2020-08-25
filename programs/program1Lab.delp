@@ -1,0 +1,10 @@
+use_criterion(lab_comparison).
+
+(errorSystemsLogs <- true):: 0.8.                         
+(vulnerable <- compromised)::0.4.                 
+(underAttack <- compromised, errorSystemsLogs)::0.2.
+(compromised -< true)::0.4.
+(qualifiedPersonnel -< true)::0.4.
+(underAttack -< compromised)::0.2.
+(webServerVulnerable -< runningOldhttp)::0.5.
+(~vulnerable -< qualifiedPersonnel)::0.4.

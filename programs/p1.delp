@@ -1,0 +1,26 @@
+use_criterion(more_specific).
+~c <- i,h,j.
+ e -< c,j,b.
+ e -< h,b,j.
+ i <- true.
+ e <- d.
+ e <- ~a,f.
+ ~e <- i,g.
+ ~e -< h,~b,g.
+ b -< j.
+ b <- ~d,f.
+ e <- b,g.
+ e -< ~b.
+ e <- ~d.
+ b <- ~d,g.
+ e <- j.
+ d <- true.
+ b <- ~a,~c,j.
+ e <- a,i,j.
+ ~c -< g.
+ e <- a,h,c.
+ a <- true.
+ f <- true.
+ ~c <- a,j.
+ b <- ~a,g,f.
+ e -< b.

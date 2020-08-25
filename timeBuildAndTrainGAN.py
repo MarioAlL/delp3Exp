@@ -1,15 +1,9 @@
 
 from __future__ import absolute_import, division, print_function, unicode_literals
 import os
-import argparse
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import tensorflow as tf
-import numpy as np
-import signal
-from tensorflow.keras import layers
-import time
-from progress.bar import IncrementalBar
-from datasets import *
+from em.bnCode import *
 from buildYesGAN import *
 from buildNoGAN import *
 tf.get_logger().setLevel('ERROR')
@@ -17,7 +11,7 @@ tf.get_logger().warning('test')
 
 existYesModel, existNoModel = False, False
 uniquesWorlds, uniquePrograms = set(), set()
-allWorlds, globalProgram, predicates, numberOfWorlds = '', '', '', 0
+globalProgram, predicates, numberOfWorlds = '', '', ''
 results = {
     'yes':{
         'total':0,
@@ -48,49 +42,57 @@ results = {
 def handlerTimer(signum, frame):
     raise Exception("Time over")
 
-def searchTrainDataset(literal, timeout):
+def searchTrainDataset(literal, timeout, pathResult):
     global results, uniquesWorlds, uniquePrograms
+    worldsAnalyzed = 0
     datasetYes, datasetNo = [], []
    
     signal.signal(signal.SIGALRM, handlerTimer)
     print_error_msj("\nTime setting (Sampling): " + str(timeout) + " seconds")
     print_ok_ops('Starting random sampling...')
-    bar = IncrementalBar('Processing worlds', max=numberOfWorlds)
+    
+    #bar = IncrementalBar('Processing worlds', max=numberOfWorlds)
+    spinner = Spinner('Processing worlds...')
     initialTime = time.time()
     signal.alarm(timeout)
     try:
-        for i in range(numberOfWorlds):
-            worldRandomId = np.random.randint(numberOfWorlds, size=1)[0]
-            world = allWorlds[worldRandomId]
-            worldValues = tuple(world['program'])
-            if(not worldValues in uniquesWorlds):
-                uniquesWorlds.add(worldValues)
-                # Build the PreDeLP Program for a world
-                delpProgram = mapWorldToProgram(globalProgram, predicates, world['program']) #return [[string],[bin]]
-                status = queryToProgram(delpProgram, literal, uniquePrograms) #return (program, status)
-                if status[1] == 'yes':
-                    results['yes']['total'] += 1
-                    results['yes']['prob'] = results['yes']['prob'] + world['prob']
-                    datasetYes.append(world['program'])
-                elif status[1] == 'no':
-                    results['no']['total'] += 1
-                    results['no']['prob'] = results['no']['prob'] + world['prob']
-                    datasetNo.append(world['program'])
-                elif status[1] == 'undecided':
-                    results['und']['total'] += 1
-                    results['und']['prob'] = results['und']['prob'] + world['prob']
-                elif status[1] == 'unknown':
-                    results['unk']['total'] += 1
-                    results['unk']['prob'] = results['unk']['prob'] + world['prob']
-            bar.next()
-        bar.finish()
+        while(True):
+            allWorlds = genSamples(bayesianNetwork, 10000, pathResult)
+            for i in range(len(allWorlds)):
+                worldData = allWorlds[i]
+                worldAsTuple = tuple(worldData[0])
+                if(not worldAsTuple in uniquesWorlds):
+                    uniquesWorlds.add(worldAsTuple)
+                    world = worldData[0]
+                    evidence = worldData[1]
+                    prWorld = getSamplingProb(evidence)
+                    # Build the PreDeLP Program for a world
+                    delpProgram = mapWorldToProgram(globalProgram, predicates, world)
+                    status = queryToProgram(delpProgram, literal, uniquePrograms)
+                    if status[1] == 'yes':
+                        results['yes']['total'] += 1
+                        results['yes']['prob'] = results['yes']['prob'] + prWorld
+                        datasetYes.append(world)
+                    elif status[1] == 'no':
+                        results['no']['total'] += 1
+                        results['no']['prob'] = results['no']['prob'] + prWorld
+                        datasetNo.append(world)
+                    elif status[1] == 'undecided':
+                        results['und']['total'] += 1
+                        results['und']['prob'] = results['und']['prob'] + prWorld
+                    elif status[1] == 'unknown':
+                        results['unk']['total'] += 1
+                        results['unk']['prob'] = results['unk']['prob'] + prWorld
+                spinner.next()
+                worldsAnalyzed += 1
+            #bar.finish()
     except Exception as e:
         print('\n')
         print_error_msj(e)
         
     signal.alarm(0)
     results['timeExecution'].append(time.time() - initialTime) # Time to sampling for find traininig dataset
-    results['worldsAnalyzed'] = i
+    results['worldsAnalyzed'] = worldsAnalyzed
     print_ok_ops('Length of training data set found (Yes): %s' % (len(datasetYes)))
     print_ok_ops('Length of training data set found (No): %s' % (len(datasetNo)))
     # Save the training dataset finded
@@ -103,7 +105,7 @@ def samplingAndTraining(literal, timeoutSampling, timeoutTraining, pathResult):
     # Search a training dataset
     # trainingDatasetes[0] = 'yes'
     # trainingDatasetes[1] = 'no'
-    trainingDatasets = searchTrainDataset(literal, timeoutSampling)
+    trainingDatasets = searchTrainDataset(literal, timeoutSampling, pathResult)
     
     print_error_msj("\nTime setting (Training): " + str(timeoutTraining) + " seconds")
     initialTime = time.time()
@@ -141,28 +143,27 @@ def analyzeWorld(world, literal):
     y = tuple(world)
     if(not y in uniquesWorlds):
         uniquesWorlds.add(y)
-        newV = [1 - val for val in world]
-        aux = ' '.join(str(x) for x in newV)
-        t = aux.replace(" ","")
-        worldId = int(t,2)
+        evidence = { i : world[i] for i in range(0, len(world) ) } #Dict
+        prWorld = getSamplingProb(evidence)
         # Build the PreDeLP Program for a world
         delpProgram = mapWorldToProgram(globalProgram, predicates, world)
         status = queryToProgram(delpProgram, literal, uniquePrograms)
         if status[1] == 'yes':
             results['yes']['total'] += 1
-            results['yes']['prob'] = results['yes']['prob'] + allWorlds[worldId]['prob']
+            results['yes']['prob'] = results['yes']['prob'] + prWorld
         elif status[1] == 'no':
             results['no']['total'] += 1
-            results['no']['prob'] = results['no']['prob'] + allWorlds[worldId]['prob']
+            results['no']['prob'] = results['no']['prob'] + prWorld
         elif status[1] == 'undecided':
             results['und']['total'] += 1
-            results['und']['prob'] = results['und']['prob'] + allWorlds[worldId]['prob']
+            results['und']['prob'] = results['und']['prob'] + prWorld
         elif status[1] == 'unknown':
             results['unk']['total'] += 1
-            results['unk']['prob'] = results['unk']['prob'] + allWorlds[worldId]['prob']
+            results['unk']['prob'] = results['unk']['prob'] + prWorld
 
 def samplingGan(pathResult, literal, timeoutGuided):
     global results
+    dim = len(predicates)
     world_data = 0
 
     if(existYesModel):
@@ -178,11 +179,12 @@ def samplingGan(pathResult, literal, timeoutGuided):
     initialTime = time.time()
     
     # For 'yes' worlds
-    bar = IncrementalBar('Processing "yes" generated programs...', max=maxWorldsToAnalyze)
+    #bar = IncrementalBar('Processing "yes" generated programs...', max=maxWorldsToAnalyze)
     signal.alarm(int(timeoutGuided/2))
     try:
         if(existYesModel):
-            for iAux1 in range(maxWorldsToAnalyze):
+            spinner = Spinner('Processing "yes" worlds...')
+            while(True):
                 noise = tf.random.normal([1, dataDim]) # Controlar esto de normal o uniforme
                 #'YES' Models
                 modelsYes = new_modelYes(noise, training=False)
@@ -190,17 +192,18 @@ def samplingGan(pathResult, literal, timeoutGuided):
                 listModelYes = modelsToBinYes[0].tolist()
                 analyzeWorld(listModelYes, literal)
                 world_data += 1
-                bar.next()
-            bar.finish()
+                spinner.next()
+            #bar.finish()
         else:
-            for iAux2 in range(maxWorldsToAnalyze):
-                worldRandomId = np.random.randint(numberOfWorlds, size=1)[0]
-                world = allWorlds[worldRandomId]
-                listModelYes = world['program']
+            spinner = Spinner('Processing random (yes time) worlds...')
+            while(True):
+                randomNm = np.random.randint(numberOfWorlds, size=1)[0]
+                worldData = int_to_bin_with_format(randomNm, dim)
+                listModelYes = worldData[0]
                 analyzeWorld(listModelYes, literal)
                 world_data += 1
-                bar.next()
-            bar.finish()
+                spinner.next()
+            #bar.finish()
         # for iAux1 in range(maxWorldsToAnalyze):
         #     noise = tf.random.uniform([1, dataDim]) # Controlar esto de normal o uniforme
         #     if existYesModel:
@@ -225,11 +228,12 @@ def samplingGan(pathResult, literal, timeoutGuided):
     signal.alarm(0)
 
     # For 'no' Worlds
-    bar = IncrementalBar('Processing "no" generated programs...', max=maxWorldsToAnalyze)
+    #bar = IncrementalBar('Processing "no" generated programs...', max=maxWorldsToAnalyze)
     signal.alarm(int(timeoutGuided/2))
     try:
         if(existNoModel):
-            for iAux3 in range(maxWorldsToAnalyze):
+            spinner = Spinner('Processing "no" worlds...')
+            while(True):
                 noise = tf.random.normal([1, dataDim]) # Controlar esto de normal o uniforme
                 #'NO' Models
                 modelsNo = new_modelNo(noise, training=False)
@@ -237,17 +241,18 @@ def samplingGan(pathResult, literal, timeoutGuided):
                 listModelNo = modelsToBinNo[0].tolist()
                 analyzeWorld(listModelNo, literal)
                 world_data += 1
-                bar.next()
-            bar.finish()
+                spinner.next()
+            #bar.finish()
         else:
-            for iAux4 in range(maxWorldsToAnalyze):
-                worldRandomId = np.random.randint(numberOfWorlds, size=1)[0]
-                world = allWorlds[worldRandomId]
-                listModelNo = world['program']
+            spinner = Spinner('Processing random (no time) worlds...')
+            while(True):
+                randomNm = np.random.randint(numberOfWorlds, size=1)[0]
+                worldData = int_to_bin_with_format(randomNm, dim)
+                listModelNo = worldData[0]
                 analyzeWorld(listModelNo, literal)
                 world_data += 1
-                bar.next()
-            bar.finish()
+                spinner.next()
+            #bar.finish()
         # for iAux2 in range(maxWorldsToAnalyze):
         #     noise = tf.random.uniform([1, dataDim]) # Controlar esto de normal o uniforme
         #     if existNoModel:
@@ -290,14 +295,13 @@ def samplingGan(pathResult, literal, timeoutGuided):
     print_ok_ops("%s" % (len(uniquePrograms)))
     print_ok_ops("Prob(%s) = [%.4f, %.4f]" % (literal, results['l'], results['u']))
 
-def main(literal, dbName, timeoutSampling, timeoutTraining, timeoutGuidedRec, pathResult):
-    global allWorlds, globalProgram, predicates, numberOfWorlds, timeoutGuided
+def main(literal, models, bn, timeoutSampling, timeoutTraining, timeoutGuidedRec, pathResult):
+    global bayesianNetwork, globalProgram, predicates, timeoutGuided, numberOfWorlds
     
-    connectDB(dbName)
-    allWorlds = getAllWorlds()
-    globalProgram = getAf()
-    predicates = getEM()
-    numberOfWorlds = len(allWorlds)
+    bayesianNetwork = bn
+    globalProgram = models["af"]
+    predicates = models["randomVar"]
+    numberOfWorlds = pow(2, len(predicates))
     timeoutGuided = timeoutGuidedRec
     
     # Sampling to find the dataset for training the GAN's models.
@@ -314,11 +318,17 @@ parser.add_argument('-l',
                     action = 'store',
                     dest = 'literal',
                     required = True)
-parser.add_argument('-db',
-                    help='The database name where load the data',
+parser.add_argument('-p',
+                    help='The DeLP3E program path',
                     action='store',
-                    dest='dbName',
-                    type=controlDBExist,
+                    dest='program',
+                    type=getDataFromFile,
+                    required=True)
+parser.add_argument('-bn',
+                    help='The Bayesian Network file path (only "bifxml" for now)',
+                    action='store',
+                    dest='bn',
+                    type=loadBN,
                     required=True)
 parser.add_argument('-pathR',
                     help='Path to save the results',
@@ -342,5 +352,5 @@ parser.add_argument('-tg',
 arguments = parser.parse_args()
 
 # Main
-main(arguments.literal, arguments.dbName, arguments.timeoutSampling, arguments.timeoutTraining, arguments.timeoutGuided,arguments.pathResult)
+main(arguments.literal, arguments.program, arguments.bn, arguments.timeoutSampling, arguments.timeoutTraining, arguments.timeoutGuided,arguments.pathResult)
 

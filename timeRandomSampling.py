@@ -1,14 +1,10 @@
-import numpy as np
-import sys
-import signal 
-from progress.bar import IncrementalBar
-from utilsExp import *
-from database import*
+import signal
 from consultDeLP import *
 import argparse
+from em.bnCode import *
 
 uniquePrograms, uniquesWorlds = set(), set()
-allWorlds, globalProgram, predicates, numberOfWorlds = '', '', '', 0
+globalProgram, predicates, bayesianNetwork = '', '', ''
 results = {
     'yes':{
         'total':0,
@@ -45,39 +41,47 @@ def startSampling(literal, timeout, pathResult):
     signal.signal(signal.SIGALRM, handlerTimer)
     print_error_msj("\nTime setting: " + str(timeout) + " seconds")
     print_ok_ops('Starting random sampling...')
-    bar = IncrementalBar('Processing worlds', max=numberOfWorlds)
+    worldsAnalyzed = 0
+    #bar = IncrementalBar('Processing worlds', max=numberOfWorlds)
+    spinner = Spinner('Processing worlds...')
     initialTime = time.time()
     signal.alarm(timeout)
     try:
-        for i in range(numberOfWorlds):
-            worldRandomId = np.random.randint(numberOfWorlds, size=1)[0]
-            if(not worldRandomId in uniquesWorlds):
-                uniquesWorlds.add(worldRandomId)
-                world = allWorlds[worldRandomId]
-                # Build the PreDeLP Program for a world
-                delpProgram = mapWorldToProgram(globalProgram, predicates, world['program'])
-                status = queryToProgram(delpProgram, literal, uniquePrograms)
-                if status[1] == 'yes':
-                    results['yes']['total'] += 1
-                    results['yes']['prob'] = results['yes']['prob'] + world['prob']
-                elif status[1] == 'no':
-                    results['no']['total'] += 1
-                    results['no']['prob'] = results['no']['prob'] + world['prob']
-                elif status[1] == 'undecided':
-                    results['und']['total'] += 1
-                    results['und']['prob'] = results['und']['prob'] + world['prob']
-                elif status[1] == 'unknown':
-                    results['unk']['total'] += 1
-                    results['unk']['prob'] = results['unk']['prob'] + world['prob']
-            bar.next()
-        bar.finish()
+        while(True):
+            allWorlds = genSamples(bayesianNetwork, 10000, pathResult)
+            for i in range(len(allWorlds)):
+                worldData = allWorlds[i]
+                worldAsTuple = tuple(worldData[0])
+                if(not worldAsTuple in uniquesWorlds):
+                    uniquesWorlds.add(worldAsTuple)
+                    world = worldData[0]
+                    evidence = worldData[1]
+                    prWorld = getSamplingProb(evidence)
+                    # Build the PreDeLP Program for a world
+                    delpProgram = mapWorldToProgram(globalProgram, predicates, world)
+                    status = queryToProgram(delpProgram, literal, uniquePrograms)
+                    if status[1] == 'yes':
+                        results['yes']['total'] += 1
+                        results['yes']['prob'] = results['yes']['prob'] + prWorld
+                    elif status[1] == 'no':
+                        results['no']['total'] += 1
+                        results['no']['prob'] = results['no']['prob'] + prWorld
+                    elif status[1] == 'undecided':
+                        results['und']['total'] += 1
+                        results['und']['prob'] = results['und']['prob'] + prWorld
+                    elif status[1] == 'unknown':
+                        results['unk']['total'] += 1
+                        results['unk']['prob'] = results['unk']['prob'] + prWorld
+                spinner.next()
+                worldsAnalyzed += 1
+            #bar.finish()
     except Exception as e:
         print('\n')
         print_error_msj(e)
         
     signal.alarm(0)
     results['timeExecution'].append(time.time() - initialTime)
-    results['worldsAnalyzed'] = i
+    results['worldsAnalyzed'] = worldsAnalyzed
     results['yes']['perc'] = "{:.2f}".format((results['yes']['total'] * 100) / results['worldsAnalyzed'])
     results['no']['perc'] = "{:.2f}".format((results['no']['total'] * 100) / results['worldsAnalyzed'])
     results['und']['perc'] = "{:.2f}".format((results['und']['total'] * 100) / results['worldsAnalyzed'])
@@ -98,15 +102,12 @@ def startSampling(literal, timeout, pathResult):
     print_ok_ops("Prob(%s) = [%.4f, %.4f]" % (literal, results['l'], results['u']))
 
 
-def main(literal, timeout, database, pathResult):
-    global allWorlds, globalProgram, predicates, numberOfWorlds
+def main(literal, timeout, models, bn, pathResult):
+    global globalProgram, predicates, bayesianNetwork
     
-    connectDB(database)
-    allWorlds = getAllWorlds()
-    globalProgram = getAf()
-    predicates = getEM()
-    numberOfWorlds = len(allWorlds)
-    closeDB()
+    bayesianNetwork = bn
+    globalProgram = models["af"]
+    predicates = models["randomVar"]
     
     startSampling(literal, timeout, pathResult)
     
@@ -118,11 +119,17 @@ parser.add_argument('-l',
                     action = 'store',
                     dest = 'literal',
                     required = True)
-parser.add_argument('-db',
-                    help='The database name where load the data',
+parser.add_argument('-p',
+                    help='The DeLP3E program path',
                     action='store',
-                    dest='dbName',
-                    type=controlDBExist,
+                    dest='program',
+                    type=getDataFromFile,
+                    required=True)
+parser.add_argument('-bn',
+                    help='The Bayesian Network file path (only "bifxml" for now)',
+                    action='store',
+                    dest='bn',
+                    type=loadBN,
                     required=True)
 parser.add_argument('-pathR',
                     help='Path to save the results (with file name)',
@@ -135,4 +142,4 @@ parser.add_argument('-t',
                     required=True)
 arguments = parser.parse_args()
 
-main(arguments.literal, arguments.timeout, arguments.dbName, arguments.pathResult)
+main(arguments.literal, arguments.timeout, arguments.program, arguments.bn, arguments.pathResult)

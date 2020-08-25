@@ -150,8 +150,12 @@ def configureTrainingNo(dataDim, dataset, pathResult, timeout):
     global noise_dim
     global BATCH_SIZE
 
+    # The batch size is a number of samples processed before the model is updated.
+    # The size of a batch must be more than or equal to one and less than or equal
+    # to the number of samples in the training dataset.
     BATCH_SIZE = len(dataset)
-    EPOCHS = 500
+    # The number of epochs is the number of complete passes through the training dataset.
+    EPOCHS = 200
     train_dataset = tf.data.Dataset.from_tensor_slices(dataset)
     train_dataset = train_dataset.shuffle(SHUFFLE_BUFFER_SIZE).batch(BATCH_SIZE)
     dataDimension = dataDim

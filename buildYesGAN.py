@@ -149,9 +149,13 @@ def configureTrainingYes(dataDim, dataset, pathResult, timeout):
     global EPOCHS
     global noise_dim
     global BATCH_SIZE
-    
+
+    # The batch size is a number of samples processed before the model is updated.
+    # The size of a batch must be more than or equal to one and less than or equal to
+    # the number of samples in the training dataset.
     BATCH_SIZE = len(dataset)
-    EPOCHS = 500
+    # The number of epochs is the number of complete passes through the training dataset.
+    EPOCHS = 200
     train_dataset = tf.data.Dataset.from_tensor_slices(dataset)
     train_dataset = train_dataset.shuffle(SHUFFLE_BUFFER_SIZE).batch(BATCH_SIZE)
     dataDimension = dataDim
@@ -182,3 +186,19 @@ def configureTrainingYes(dataDim, dataset, pathResult, timeout):
     
     generator.save(pathResult + '/my_model_yes')
     print_ok_ops("Model saved")
+
+def graph_models(path):
+    modelYes = tf.keras.models.load_model(path + 'my_model_yes/')
+    modelNo = tf.keras.models.load_model(path + 'my_model_no/')
+
+    tf.keras.utils.plot_model(
+        modelYes, to_file='./modelYES.png', show_shapes=True, show_layer_names=True,
+        rankdir='TB', expand_nested=True, dpi=96
+    )
+
+    tf.keras.utils.plot_model(
+        modelNo, to_file='./modelNO.png', show_shapes=True, show_layer_names=True,
+        rankdir='TB', expand_nested=True, dpi=96
+    )
+
+# graph_models('/home/mario/results/')

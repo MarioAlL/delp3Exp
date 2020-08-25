@@ -1,2 +1,4 @@
-p3venv/ 
+
+p3venv/
 programs/
+__pycache__/
