@@ -5,6 +5,8 @@ import json
 #from pysat.solvers import Glucose3
 import itertools
 import matplotlib.pyplot as plt
+import os
+import glob
 
 
 def print_info_msj(x): return cprint(x, 'grey', 'on_white')
@@ -183,6 +185,19 @@ def getDataFromFile(pathFile):
         # print(e)
         print_error_msj("JSON incorrect format: %s" % (pathFile))
         exit()
+
+
+def get_all_delp(dataset_path):
+    if not os.path.isdir(dataset_path):
+        print_error_msj("The path specified for delp programs does not exist")
+        exit()
+    else:
+        delp_programs = glob.glob(dataset_path + '*.json')
+        if len(delp_programs) != 0:
+            return delp_programs
+        else:
+            print_error_msj("The path specified is empty")
+            exit()
 
 
 def int_to_bin_with_format(number, lenght):
