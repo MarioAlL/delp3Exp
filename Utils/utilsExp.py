@@ -49,7 +49,6 @@ def formatForm(form, predicates, world):
                 atomStatusInWorld = "False"
         except ValueError:
             atomStatusInWorld = element
-
         newForm = newForm + " " + atomStatusInWorld
 
     return newForm
@@ -108,8 +107,6 @@ def mapBinToProgram(globalProgram, binArray):
             break
     return [delpProgram, binArray, evidence]
 
-
-# print(mapBinToProgram([["a","1"],["b","True"],["c","3"],["d","3"]],[0,1,0,1]))
 
 def map_world_to_program(globalProgram, em, world):
     delpProgram = ''
