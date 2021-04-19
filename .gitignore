@@ -1,2 +1,5 @@
+.*
+!/.gitignore
+tags*
 __pycache__/
-.ipynb_checkpoints/
+
