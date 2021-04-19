@@ -1,6 +1,7 @@
 # Class for Bayesian Network
 import json
 import networkx as nx
+from networkx.algorithms.approximation.treewidth import *
 import random
 import pyAgrum as gum
 import pyAgrum.lib.bn2graph as gumGraph
@@ -210,6 +211,11 @@ def create_random_dag(nodes, edges):
         else:
             # Closed a loop
             G.remove_edge(a, b)
+    #asUndGraph = nx.Graph(G)
+    #treewidht_h1 = treewidth_min_degree(asUndGraph)
+    #treewidht_h2 = treewidth_min_fill_in(asUndGraph)
+    #print(treewidht_h1)
+    #print(treewidht_h2)
     return G
 
 def entropy_test():
@@ -264,3 +270,5 @@ def entropy_test():
                     'nodes_with_childrens': [e4b, e4a]
                 }
                 json.dump(entropyResults, outFile, indent = 4)
+
+#create_random_dag(20,100)

@@ -2,7 +2,7 @@ from termcolor import cprint
 import types
 import numpy as np
 import json
-from pysat.solvers import Glucose3
+#from pysat.solvers import Glucose3
 import itertools
 import matplotlib.pyplot as plt
 
@@ -220,3 +220,5 @@ def plot_samples(path):
     except IOError:
         print_error_msj("Error trying to open the file: %s" % (path))
         exit()
+
+

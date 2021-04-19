@@ -53,7 +53,7 @@ def main(data, nvar, nvaruse, with_labels, path_to_save):
         # Generate variables
         randomVar = [str(var) for var in list(range(nvar))]
         # Get all rules from the delp program
-        rules = [rule[:-1] for rule in data["delp"][1:]]
+        rules = [rule[:-1] for rule in data["delp"]]
         # Get the first nvaruse from randomVar
         randomVarToUse = randomVar[:nvaruse]
         randomVarToUse.append('True')
@@ -143,8 +143,10 @@ parser.add_argument('-outpath',
                     help='Path for the output files',
                     dest="path_to_save",
                     required=True)
-arguments = parser.parse_args(sys.argv)
+# To call from another python file
+#arguments = parser.parse_args(sys.argv)
 
+arguments = parser.parse_args()
 
 main(arguments.program, arguments.nvar,
     arguments.nvaruse, False, arguments.path_to_save)
@@ -156,3 +158,4 @@ main(arguments.program, arguments.nvar,
 # '-nvaruse', 'Int',
 # '-outpath', 'Result path'
 # ]
+#build_BN(90, 110, 0, '/home/mario/')
