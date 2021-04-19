@@ -145,11 +145,7 @@ parser.add_argument('-outpath',
                     required=True)
 # To call from another python file
 #arguments = parser.parse_args(sys.argv)
-
 arguments = parser.parse_args()
-
-main(arguments.program, arguments.nvar,
-    arguments.nvaruse, False, arguments.path_to_save)
 
 ##### To call from other script #####
 # sys.argv = [
@@ -158,4 +154,5 @@ main(arguments.program, arguments.nvar,
 # '-nvaruse', 'Int',
 # '-outpath', 'Result path'
 # ]
-#build_BN(90, 110, 0, '/home/mario/')
+main(arguments.program, arguments.nvar,
+    arguments.nvaruse, False, arguments.path_to_save)
