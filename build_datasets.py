@@ -2,6 +2,7 @@ import argparse
 from buildKBs import *
 from utilsExp import *
 
+utils = Utils()
 class Experiment:
     
     # Some default configurations for models
@@ -56,20 +57,29 @@ class Experiment:
             }
     
 
-    def __init__(self, result_path) -> None:
-        # The object for create the datasets
-        self.model_creator = CreateDeLP3E()
-        self.result_path = result_path
-    
+    def __init__(self) -> None:
+        pass    
 
-    def build_models(self, am, am_setting: str, af_setting: str, em_setting: str) -> None:
+    def build_models(self, am, am_set: str, af_set: str, 
+                        em_set: str, output_path: str) -> None:
         """ To create setting for the experiment
         Args:
+            -am: The dataset of delp programs
             -am_setting: 'simple', 'medium' or 'complex'
             -af_setting: 'simple', 'medium' or 'complex'
             -em_setting: 'simple', 'medium' or 'complex'
+            -output_path: The path for save the delp3e models
         """
-        self.model_creator.main(am, self.em_settings['simple']['var'], self.em_settings['simple']['var_use_annot'], False, self.result_path)
+        model_creator = CreateDeLP3E(am, self.af_settings[af_set]['fa_ann'], 
+                                        self.af_settings[af_set]['var_use'],
+                                        self.em_settings[em_set]['var'],
+                                        self.em_settings[em_set]['var_use_annot'],
+                                        self.af_settings[af_set]['operators'],
+                                        self.em_settings[em_set]['arcs'],
+                                        self.em_settings[em_set]['alpha'],
+                                        self.em_settings[em_set]['tau'],
+                                        output_path)
+        model_creator.create()
 
 
 parser = argparse.ArgumentParser(description='Script to generate annotations \
@@ -78,7 +88,7 @@ parser.add_argument('-am',
                     action='store',
                     help="The path of the dataset with delp programs (in json format)",
                     dest="am",
-                    type=get_all_delp,
+                    type=utils.get_all_delp,
                     required=True)
 #parser.add_argument('-vem',
 #                    help='Number of environmental variables',
@@ -117,7 +127,7 @@ arguments = parser.parse_args()
 ## ]
 #main(arguments.delp, arguments.var_em,
 #    arguments.var_used, arguments.var_annot, arguments.output_path)
-test = Experiment(arguments.output_path)
-test.build_models(arguments.am, 'simple', 'simple', 'simple')
+test = Experiment()
+test.build_models(arguments.am, 'simple', 'simple', 'simple', arguments.output_path)
 
 

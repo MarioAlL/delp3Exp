@@ -8,12 +8,25 @@ from bn import *
 import pyAgrum as gum
 
 
-class CreateDeLP3E:
-    var_to_use_probs = {}
+class CreateDeLP3E: 
     neg_probs = [0.80, 0.20] # [Prob for literal, Prob for negated literal]
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, am: list, fa_ann: int, 
+                        var_use_ann: int, em_var: int,
+                        em_var_use_ann: int, operators: int,
+                        arcs: int, alpha: int, tau: int, 
+                        path_to_save: str) -> None:
+        self.delp_programs = am
+        self.fa_ann = fa_ann 
+        self.var_use_ann = var_use_ann
+        self.em_var = em_var
+        self.em_var_use_ann = em_var_use_ann
+        self.operators = operators
+        self.arcs = arcs
+        self.alpha= alpha
+        self.tau = tau
+        self.path_to_save = path_to_save
+        self.utils = Utils()
 
 
     def assign_labels_formulas(self, rules, to_all_rules):
@@ -35,14 +48,28 @@ class CreateDeLP3E:
                 af.append(
                     ['('+ rule +')::' + str(label)[:4] + ';', formula])
         return af
+    
+
+    def filter_rules(self, rules: list) -> list:
+        filtered_rules = []
+
+        if self.fa_ann == 0:
+            # Only the facts and presumptions are annotated
+            filtered_rules = [rule for rule in rules if '<- true' in rule or 
+                                                        '-< true' in rule]
+        elif self.fa_ann < 100:
+            perc = int((self.fa_ann * len(rules)) / 100)
+            filtered_rules = np.random.choice(rules, perc)
+        else:
+            # All delp program is annotated
+            filtered_rules = rules
+
+        return filtered_rules
 
 
-    def assign_formulas(self,rules):
-        af = []
-        for rule in rules:
-            formula = self.get_simple_formula()
-            af.append([rule + ';', formula])
-        return af
+    def get_annotation(self) -> str:
+        return "Annotation test"
+
 
 
     def build_BN(self,nodes, arcs, alpha_entropy, path_to_save):
@@ -54,40 +81,70 @@ class CreateDeLP3E:
             bayesian_network.make_CPTs(bayesian_network.structure[0], alpha_entropy)
 
 
-    def main(self, data: json, nvar, nvaruse, with_labels, path_to_save):
-        if(nvaruse <= nvar):
-            # Generate variables
-            randomVar = [str(var) for var in list(range(nvar))]
-            # Get all rules from the delp program
-            rules = [rule[:-1] for rule in data["delp"]]
-            # Get the first nvaruse from randomVar
-            randomVarToUse = randomVar[:nvaruse]
-            randomVarToUse.append('True')
-            # Assign probabilities to each variables to use
-            probs = []
-            self.var_to_use_probs["variables"] = randomVarToUse
-            self.var_to_use_probs["probs"] = probs
-            if with_labels:
-                af = self.assign_labels_formulas(rules, False)
-            else:
-                af = self.assign_formulas(rules)
+    def create(self) -> None: 
+        for path_delp_program in self.delp_programs:
+            delp_program = self.utils.getDataFromFile(path_delp_program)
+            delp_rules = [rule[:-1] for rule in delp_program['delp']]
+            rule_to_annot = self.filter_rules(delp_rules)
+            af = []
+            for rule in delp_rules:
+                if rule in rule_to_annot:
+                    annotation = self.get_annotation()
+                    af.append([rule + ';', annotation])
+                else:
+                    af.append([rule + ';', ""])
+            
+            # Create the Environmental Model
+            # ...
 
-            program = {
-                "random_var": randomVar,
-                "var_used": randomVarToUse,
-                "af": af
-            }
+            # To save the delp3e model
+            delp3e_model = {
+                    "em_var": self.em_var,
+                    "em_var_use_ann": self.em_var_use_ann,
+                    "literals": delp_program['literals'],
+                    "af": af
+                    }
+            
+            # Save the delp3e file
+            self.utils.write_json(delp3e_model, self.path_to_save + 'AAKJSDA')
 
-            write_json_file(program, path_to_save + 'KB')   # Save the KB
 
-            nodes = nvar #  Number of nodes for the Bayesian Network
-            arcs = nvar #   Max number of arcs for the Bayesian Network
-            alpha_entropy = 0 # 0 Max entropy, 1 Min entropy
-            self.build_BN(nodes, arcs, alpha_entropy, path_to_save)
-            print("KB generated")
-        else:
-            print_error_msj("Error: nvaruse > nvar")
-            exit()
+
+        
+
+        #if(nvaruse <= nvar):
+        #    # Generate variables
+        #    randomVar = [str(var) for var in list(range(nvar))]
+        #    # Get all rules from the delp program
+        #    rules = [rule[:-1] for rule in data["delp"]]
+        #    # Get the first nvaruse from randomVar
+        #    randomVarToUse = randomVar[:nvaruse]
+        #    randomVarToUse.append('True')
+        #    # Assign probabilities to each variables to use
+        #    probs = []
+        #    self.var_to_use_probs["variables"] = randomVarToUse
+        #    self.var_to_use_probs["probs"] = probs
+        #    if with_labels:
+        #        af = self.assign_labels_formulas(rules, False)
+        #    else:
+        #        af = self.assign_formulas(rules)
+
+        #    program = {
+        #        "random_var": randomVar,
+        #        "var_used": randomVarToUse,
+        #        "af": af
+        #    }
+
+        #    write_json_file(program, path_to_save + 'KB')   # Save the KB
+
+        #    nodes = nvar #  Number of nodes for the Bayesian Network
+        #    arcs = nvar #   Max number of arcs for the Bayesian Network
+        #    alpha_entropy = 0 # 0 Max entropy, 1 Min entropy
+        #    self.build_BN(nodes, arcs, alpha_entropy, path_to_save)
+        #    print("KB generated")
+        #else:
+        #    print_error("Error: nvaruse > nvar")
+        #    exit()
 
 
     def get_simple_formula(self):
