@@ -129,13 +129,17 @@ class CreateDeLP3E:
         return annotation
 
 
-    def build_BN(self,nodes, arcs, alpha_entropy, path_to_save):
+    def build_BN(self, am_name: str) -> None:
+        nodes = self.em_var
+        arcs = self.arcs
+        alpha = self.alpha
+        tau = self.tau  # ???
         #For build a random Bayesian Network
-        bayesian_network = BayesNetwork('BN',path_to_save)
+        bayesian_network = BayesNetwork('BN' + am_name, self.path_to_save)
         bayesian_network.build_save_random_BN(nodes, arcs, True)
-        if alpha_entropy != 0:
+        if alpha != 0:
             # To change the entropy
-            bayesian_network.make_CPTs(bayesian_network.structure[0], alpha_entropy)
+            bayesian_network.make_CPTs(bayesian_network.structure[0], alpha)
 
 
     def create(self) -> None: 
@@ -152,7 +156,12 @@ class CreateDeLP3E:
                     af.append([rule + ';', ""])
             
             # Create the Environmental Model
-            # ...
+            if self.arcs != 0:
+                # Create the em with a Bayesian Network
+                self.build_BN(os.path.basename(path_delp_program)[:-5])
+            else:
+                # Create the em with a Tuple-Independence Model
+                pass
 
             # To save the delp3e model
             delp3e_model = {
@@ -164,44 +173,3 @@ class CreateDeLP3E:
             
             # Save the delp3e file
             self.utils.write_json(delp3e_model, self.path_to_save + 'AAKJSDA')
-
-
-
-        
-
-        #if(nvaruse <= nvar):
-        #    # Generate variables
-        #    randomVar = [str(var) for var in list(range(nvar))]
-        #    # Get all rules from the delp program
-        #    rules = [rule[:-1] for rule in data["delp"]]
-        #    # Get the first nvaruse from randomVar
-        #    randomVarToUse = randomVar[:nvaruse]
-        #    randomVarToUse.append('True')
-        #    # Assign probabilities to each variables to use
-        #    probs = []
-        #    self.var_to_use_probs["variables"] = randomVarToUse
-        #    self.var_to_use_probs["probs"] = probs
-        #    if with_labels:
-        #        af = self.assign_labels_formulas(rules, False)
-        #    else:
-        #        af = self.assign_formulas(rules)
-
-        #    program = {
-        #        "random_var": randomVar,
-        #        "var_used": randomVarToUse,
-        #        "af": af
-        #    }
-
-        #    write_json_file(program, path_to_save + 'KB')   # Save the KB
-
-        #    nodes = nvar #  Number of nodes for the Bayesian Network
-        #    arcs = nvar #   Max number of arcs for the Bayesian Network
-        #    alpha_entropy = 0 # 0 Max entropy, 1 Min entropy
-        #    self.build_BN(nodes, arcs, alpha_entropy, path_to_save)
-        #    print("KB generated")
-        #else:
-        #    print_error("Error: nvaruse > nvar")
-        #    exit()
-
-
-    

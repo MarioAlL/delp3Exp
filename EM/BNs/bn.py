@@ -119,7 +119,7 @@ class BayesNetwork:
             if not othernode in nodes:
                 self.bn.generateCPT(othernode)
         gum.saveBN(self.bn, self.path + self.name + '.bifxml')
-        print("CPTS adapted")
+        #print("CPTS adapted")
 
     def getEntropy(self):
         cNodes = len(self.structure[0])

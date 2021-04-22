@@ -67,8 +67,8 @@ class Experiment:
             -em_setting: 'simple', 'medium' or 'complex'
             -output_path: The path for save the delp3e models
         """
-        model_creator = CreateDeLP3E(am, self.af_settings['complex']['fa_ann'], 
-                                        self.af_settings['complex']['var_use'],
+        model_creator = CreateDeLP3E(am, self.af_settings[af_set]['fa_ann'], 
+                                        self.af_settings[af_set]['var_use'],
                                         self.em_settings[em_set]['var'],
                                         self.em_settings[em_set]['var_use_annot'],
                                         self.em_settings[em_set]['arcs'],
