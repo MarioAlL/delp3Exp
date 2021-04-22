@@ -17,18 +17,15 @@ class Experiment:
     af_settings = {
             'simple':{
                 'fa_ann': 0,    # Only kb base is annotated
-                'var_use': 1,
-                'operators': 0  # No operators
+                'var_use': 1 
                 },
             'medium':{
                 'fa_ann': 50,
-                'var_use': 2,
-                'operators': 1  # And or OR
+                'var_use': 2
                 },
             'complex':{
                 'fa_ann': 100,
-                'var_use': 3,
-                'operators': 2  # And and OR
+                'var_use': 3
                 }
             }
     # Environmental Model
@@ -70,11 +67,10 @@ class Experiment:
             -em_setting: 'simple', 'medium' or 'complex'
             -output_path: The path for save the delp3e models
         """
-        model_creator = CreateDeLP3E(am, self.af_settings[af_set]['fa_ann'], 
-                                        self.af_settings[af_set]['var_use'],
+        model_creator = CreateDeLP3E(am, self.af_settings['complex']['fa_ann'], 
+                                        self.af_settings['complex']['var_use'],
                                         self.em_settings[em_set]['var'],
                                         self.em_settings[em_set]['var_use_annot'],
-                                        self.af_settings[af_set]['operators'],
                                         self.em_settings[em_set]['arcs'],
                                         self.em_settings[em_set]['alpha'],
                                         self.em_settings[em_set]['tau'],

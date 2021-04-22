@@ -9,11 +9,12 @@ import pyAgrum as gum
 
 
 class CreateDeLP3E: 
-    neg_probs = [0.80, 0.20] # [Prob for literal, Prob for negated literal]
+    neg_prob = 0.05 # Prob to negate a variable in annotation construction
+    operators = ['and', 'or'] # Operators for annotation construction
 
     def __init__(self, am: list, fa_ann: int, 
                         var_use_ann: int, em_var: int,
-                        em_var_use_ann: int, operators: int,
+                        em_var_use_ann: int, 
                         arcs: int, alpha: int, tau: int, 
                         path_to_save: str) -> None:
         self.delp_programs = am
@@ -21,7 +22,6 @@ class CreateDeLP3E:
         self.var_use_ann = var_use_ann
         self.em_var = em_var
         self.em_var_use_ann = em_var_use_ann
-        self.operators = operators
         self.arcs = arcs
         self.alpha= alpha
         self.tau = tau
@@ -67,9 +67,66 @@ class CreateDeLP3E:
         return filtered_rules
 
 
-    def get_annotation(self) -> str:
-        return "Annotation test"
 
+    def get_simple_formula(self):
+        # To build simple formulas with one atom
+        if len(self.var_to_use_probs["probs"]) != 0:
+            variable = np.random.choice(self.var_to_use_probs["variables"],
+                                        1,
+                                        p = self.var_to_use_probs["probs"],
+                                        replace = True)
+        else:
+            variable = np.random.choice(self.var_to_use_probs["variables"],
+                                        1,
+                                        replace = True)
+        negation = np.random.choice(["","not "], 1, p = self.neg_probs, replace = True)
+        formula = str(negation[0]) +str(variable[0])
+        return formula
+
+
+
+    def get_formula(self):
+        # To build formulas with two atoms and one operator
+        if(len(probs) > 0):
+            atoms = np.random.choice(variables, 2, p= probs, replace=True)
+        else:
+            atoms = np.random.choice(variables, 2, replace=True)
+
+        if 'True' in atoms:
+            return 'True'
+        else:
+            operator = np.random.choice(['and','or'], 1, replace=True)
+            return str(atoms[0] + ' ' + operator[0] + ' ' + atoms[1])
+    
+
+    def get_variables(self, number: int):
+        variables = []
+        rnd_vars = np.random.choice(self.em_var_use_ann, number, replace=False)
+        for var in rnd_vars:
+            rnd_negation = np.random.random()
+            if rnd_negation < self.neg_prob:
+                variables.append("not " + str(var))
+            else:
+                variables.append(str(var))
+        return variables
+
+
+    def get_annotation(self) -> str:
+        if self.var_use_ann == 1:
+            # Build annotation with one variable (0 operators)
+            annotation = self.get_variables(1)[0]
+        elif self.var_use_ann == 2:
+            # Build annotation with two variables (1 operator)
+            variables = self.get_variables(2)
+            operator = np.random.choice(self.operators, 1)[0]
+            annotation = " ".join([variables[0], operator, variables[1]])
+        elif self.var_use_ann == 3:
+            # Build annotation with three variables (2 operators)
+            variables = self.get_variables(3)
+            operators = np.random.choice(self.operators, 2, replace=True)
+            annotation = " ".join([variables[0], operators[0], variables[1], 
+                                                operators[1], variables[2]])
+        return annotation
 
 
     def build_BN(self,nodes, arcs, alpha_entropy, path_to_save):
@@ -147,30 +204,4 @@ class CreateDeLP3E:
         #    exit()
 
 
-    def get_simple_formula(self):
-        # To build simple formulas with one atom
-        if len(self.var_to_use_probs["probs"]) != 0:
-            variable = np.random.choice(self.var_to_use_probs["variables"],
-                                        1,
-                                        p = self.var_to_use_probs["probs"],
-                                        replace = True)
-        else:
-            variable = np.random.choice(self.var_to_use_probs["variables"],
-                                        1,
-                                        replace = True)
-        negation = np.random.choice(["","not "], 1, p = self.neg_probs, replace = True)
-        formula = str(negation[0]) +str(variable[0])
-        return formula
-
-    def get_formula(self):
-        # To build formulas with two atoms and one operator
-        if(len(probs) > 0):
-            atoms = np.random.choice(variables, 2, p= probs, replace=True)
-        else:
-            atoms = np.random.choice(variables, 2, replace=True)
-
-        if 'True' in atoms:
-            return 'True'
-        else:
-            operator = np.random.choice(['and','or'], 1, replace=True)
-            return str(atoms[0] + ' ' + operator[0] + ' ' + atoms[1])
+    
