@@ -1,5 +1,7 @@
+import sys
+sys.path.insert(4, '../Utils/utilsExp.py')
 import subprocess
-from utilsExp import *
+#from utilsExp import *
 
 def queryToProgram(delpProgram, literal, uniquePrograms, delpSolverName):
     if(not len(delpProgram[0]) == 0):
@@ -10,7 +12,7 @@ def queryToProgram(delpProgram, literal, uniquePrograms, delpSolverName):
             delpProgramString = delpProgram[0] + 'use_criterion(more_specific);'
             #delpProgramString = delpProgram[0] + "use_criterion(lab_comparison)'"
             #cmd = ['./expListICIC', delpProgramString, literal]
-            cmd = ['./' + delpSolverName, 'stream', delpProgramString, 'answ', literal]
+            cmd = ['./DeLPSolver/' + delpSolverName, 'stream', delpProgramString, 'answ', literal]
             proc = subprocess.Popen(cmd,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)

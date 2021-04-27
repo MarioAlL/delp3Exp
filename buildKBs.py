@@ -67,38 +67,6 @@ class CreateDeLP3E:
         return filtered_rules
 
 
-
-    def get_simple_formula(self):
-        # To build simple formulas with one atom
-        if len(self.var_to_use_probs["probs"]) != 0:
-            variable = np.random.choice(self.var_to_use_probs["variables"],
-                                        1,
-                                        p = self.var_to_use_probs["probs"],
-                                        replace = True)
-        else:
-            variable = np.random.choice(self.var_to_use_probs["variables"],
-                                        1,
-                                        replace = True)
-        negation = np.random.choice(["","not "], 1, p = self.neg_probs, replace = True)
-        formula = str(negation[0]) +str(variable[0])
-        return formula
-
-
-
-    def get_formula(self):
-        # To build formulas with two atoms and one operator
-        if(len(probs) > 0):
-            atoms = np.random.choice(variables, 2, p= probs, replace=True)
-        else:
-            atoms = np.random.choice(variables, 2, replace=True)
-
-        if 'True' in atoms:
-            return 'True'
-        else:
-            operator = np.random.choice(['and','or'], 1, replace=True)
-            return str(atoms[0] + ' ' + operator[0] + ' ' + atoms[1])
-    
-
     def get_variables(self, number: int):
         variables = []
         rnd_vars = np.random.choice(self.em_var_use_ann, number, replace=False)
@@ -142,7 +110,8 @@ class CreateDeLP3E:
             bayesian_network.make_CPTs(bayesian_network.structure[0], alpha)
 
 
-    def create(self) -> None: 
+    def create(self) -> None:
+        self.utils.print_info("Building models...")
         for path_delp_program in self.delp_programs:
             delp_program = self.utils.getDataFromFile(path_delp_program)
             delp_rules = [rule[:-1] for rule in delp_program['delp']]
@@ -172,4 +141,6 @@ class CreateDeLP3E:
                     }
             
             # Save the delp3e file
-            self.utils.write_json(delp3e_model, self.path_to_save + 'AAKJSDA')
+            self.utils.write_json(delp3e_model, self.path_to_save + 'model' + 
+                                    os.path.basename(path_delp_program)[:-5])
+        self.utils.print_ok("Models created")

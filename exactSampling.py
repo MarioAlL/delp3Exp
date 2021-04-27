@@ -1,11 +1,14 @@
 import sys
-
+sys.path.insert(3, './DeLPSolver/')
+sys.path.insert(1, './EM/BNs/')
+sys.path.insert(2, './Utils/')
 from progress.bar import IncrementalBar
 from consultDeLP import *
-from em.bn import *
+from bn import *
+from utilsExp import *
 import time
 import argparse
-
+utils = Utils()
 uniquePrograms = set()
 globalProgram, predicates, numberOfWorlds = '', '', ''
 results = {
@@ -39,18 +42,17 @@ results = {
 def startSampling(literal, bayesian_network, path_result, solverName):
     global uniquePrograms
     dim = len(predicates)  # Length to convert int to binary
-    print_ok_ops('\nStarting exact sampling...')
+    utils.print_ok('\nStarting exact sampling...')
     initialTime = time.time()
     for i in range(numberOfWorlds):
         #if i % 1000 == 0:
         print (i, end="\r")
-        worldData = int_to_bin_with_format(i, dim)
+        worldData = utils.int_to_bin_with_format(i, dim)
         world = worldData[0]
         evidence = worldData[1]
-        prWorld = bayesian_network.get_sampling_prob(evidence)
-
+        prWorld = bayesian_network.get_sampling_prob(evidence) 
         # Build the delp program for a world
-        delpProgram = map_world_to_program(globalProgram, predicates, world)
+        delpProgram = utils.map_world_to_program(globalProgram, predicates, world)
         # Compute the literal status
         status = queryToProgram(delpProgram, literal, uniquePrograms, solverName)
         if status[1] == 'yes':
@@ -95,32 +97,15 @@ def main(literal, models, bn, path_to_save, solverName):
 
     bayesian_network = bn
     globalProgram = models["af"]
-    predicates = models["randomVar"]
+    predicates = list(range(models["em_var_use_ann"]))
     numberOfWorlds = pow(2, len(predicates))
     startSampling(literal, bayesian_network, path_to_save, solverName)
 
+literal = 'a_0'
+models = utils.getDataFromFile("../modelsdelp3e/ssm/modeldelp0.json")
+em_model = BayesNetwork("BNdelp0", "../modelsdelp3e/ssm/")
+em_model.load_bn()
+path_to_save = "./"
+solverName = "globalCore"
 
-# parser = argparse.ArgumentParser(description="Script to perform the Sampling experiment (Exact)")
-#
-# parser.add_argument('-l',
-#                     help='The literal to calculate the probability interval',
-#                     action='store',
-#                     dest='literal',
-#                     required=True)
-#
-# arguments = parser.parse_args()
-
-# pathToProgram = "/home/mario/results/final/models.json"
-# pathResult = "/home/mario/results/final/"
-# program = getDataFromFile(pathToProgram)
-# myBN = BayesNetwork('TEST', '/home/mario/results/final/')
-# myBN.load_bn()
-
-solverName = sys.argv[5]
-literalToConsult = sys.argv[4]
-pathToProgram = sys.argv[0]
-pathResult = sys.argv[1]
-program = getDataFromFile(pathToProgram)
-myBN = BayesNetwork(sys.argv[2] + 'TEST', sys.argv[3])
-myBN.load_bn()
-main(literalToConsult, program, myBN, pathResult, solverName)
+main(literal, models, em_model, path_to_save, solverName)

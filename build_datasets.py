@@ -57,12 +57,10 @@ class Experiment:
     def __init__(self) -> None:
         pass    
 
-    def build_models(self, am, am_set: str, af_set: str, 
-                        em_set: str, output_path: str) -> None:
+    def build_models(self, am, af_set: str, em_set: str, output_path: str) -> None:
         """ To create setting for the experiment
         Args:
             -am: The dataset of delp programs
-            -am_setting: 'simple', 'medium' or 'complex'
             -af_setting: 'simple', 'medium' or 'complex'
             -em_setting: 'simple', 'medium' or 'complex'
             -output_path: The path for save the delp3e models
@@ -86,25 +84,16 @@ parser.add_argument('-am',
                     dest="am",
                     type=utils.get_all_delp,
                     required=True)
-#parser.add_argument('-vem',
-#                    help='Number of environmental variables',
-#                    dest="var_em",
-#                    type=int,
-#                    required=True)
-#parser.add_argument('-vu',
-#                    help='Number of environmental variables to use in annotations',
-#                    dest="var_used",
-#                    type=int,
-#                    required=True)
-#parser.add_argument('-vannot',
-#                    help='Environmental variables to use in each annotation',
-#                    dest='var_annot',
-#                    type=bool,
-#                    required=False)
-#parser.add_argument('-use_op',
-#                    help='Operator to use (1 = AND or OR, 2 = AND and OR)',
-#                    dest="operators",
-#                    required=False)
+parser.add_argument('-af',
+                    help='Annotation Function setting',
+                    dest="af_set",
+                    type=str,
+                    required=True)
+parser.add_argument('-em',
+                    help='Environmental Model setting',
+                    dest="em_set",
+                    type=str,
+                    required=True)
 parser.add_argument('-out',
                     help='Path for the output file',
                     dest="output_path",
@@ -124,6 +113,7 @@ arguments = parser.parse_args()
 #main(arguments.delp, arguments.var_em,
 #    arguments.var_used, arguments.var_annot, arguments.output_path)
 test = Experiment()
-test.build_models(arguments.am, 'simple', 'simple', 'simple', arguments.output_path)
+test.build_models(arguments.am, arguments.af_set, arguments.em_set, 
+                                                        arguments.output_path)
 
 

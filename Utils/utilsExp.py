@@ -10,6 +10,8 @@ import glob
 
 class Utils:
     def __init__(self):
+        # Dictionary to save the delp programs and literals status
+        self.delp_programs = {}
         pass
 
     def print_info(self, x): return cprint(x, 'grey', 'on_white')
@@ -40,7 +42,7 @@ class Utils:
             return [getPos(form.strip(), predicates)]
 
 
-    def formatForm(self,form, predicates, world):
+    def formatForm(self,form, predicates, world): 
         newForm = ''
         auxIndex = -1
         atomStatusInWorld = ''
@@ -91,7 +93,10 @@ class Utils:
 
 
     def getIsSatisfied(self,form, predicates, world):
-        return eval(formatForm(form, predicates, world))
+        if form != "":
+            return eval(self.formatForm(form, predicates, world))
+        else:
+            return True
 
 
     def mapBinToProgram(self,globalProgram, binArray):
@@ -111,13 +116,14 @@ class Utils:
                 return -1  # Inconsistent Program
                 break
         return [delpProgram, binArray, evidence]
-
+    
+    
 
     def map_world_to_program(self,globalProgram, em, world):
         delpProgram = ''
         delpProgramBin = []
         for rule in globalProgram:
-            isSatisfied = getIsSatisfied(rule[1], em, world)
+            isSatisfied = self.getIsSatisfied(rule[1], em, world)
             if isSatisfied:
                 delpProgram = delpProgram + rule[0]
                 delpProgramBin.append(1)
@@ -201,14 +207,17 @@ class Utils:
             else:
                 self.print_error("The path specified is empty")
                 exit()
-
+    
+    def bin_to_int(self, number: bin):
+        return int(number, 2)
 
     def int_to_bin_with_format(self,number, lenght):
         toFormat = '{0:0' + str(lenght) + 'b}'
         world = list(toFormat.format(int(number)))  # List
         world = [int(value) for value in world]
         evidence = {i: world[i] for i in range(0, len(world))}  # Dict
-        return [world, evidence]
+        binary = bin(number)
+        return [world, evidence, binary]
 
 
     def save_unique_worlds(self,uniqueWorlds, exp, path):
