@@ -25,8 +25,7 @@ class CreateDeLP3E:
         self.arcs = arcs
         self.alpha= alpha
         self.tau = tau
-        self.path_to_save = path_to_save
-        self.utils = Utils()
+        self.path_to_save = path_to_save 
 
 
     def assign_labels_formulas(self, rules, to_all_rules):
@@ -111,9 +110,9 @@ class CreateDeLP3E:
 
 
     def create(self) -> None:
-        self.utils.print_info("Building models...")
+        print_ok("Building models...")
         for path_delp_program in self.delp_programs:
-            delp_program = self.utils.getDataFromFile(path_delp_program)
+            delp_program = read_json_file(path_delp_program)
             delp_rules = [rule[:-1] for rule in delp_program['delp']]
             rule_to_annot = self.filter_rules(delp_rules)
             af = []
@@ -130,6 +129,7 @@ class CreateDeLP3E:
                 self.build_BN(os.path.basename(path_delp_program)[:-5])
             else:
                 # Create the em with a Tuple-Independence Model
+                self.build_BN(os.path.basename(path_delp_program)[:-5])
                 pass
 
             # To save the delp3e model
@@ -141,6 +141,8 @@ class CreateDeLP3E:
                     }
             
             # Save the delp3e file
-            self.utils.write_json(delp3e_model, self.path_to_save + 'model' + 
-                                    os.path.basename(path_delp_program)[:-5])
-        self.utils.print_ok("Models created")
+            with open(self.path_to_save + 'model' + 
+                                    os.path.basename(path_delp_program)[:-5] + '.json', 
+                                    'w') as outfile:
+                json.dump(delp3e_model, outfile, indent = 4)
+        print_ok("Models created")
