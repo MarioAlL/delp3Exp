@@ -2,7 +2,6 @@ import argparse
 from buildKBs import *
 from utilsExp import *
 
-utils = Utils()
 class Experiment:
     
     # Some default configurations for models
@@ -33,9 +32,9 @@ class Experiment:
             'simple': {
                 'var': 10,
                 'var_use_annot': 10,
-                'arcs': 0,  # To use Tup-Ind
-                'alpha': 0,
-                'tau': 0
+                'arcs': 10,  # To use Tup-Ind
+                'alpha': 0.9,
+                'tau': 1
                 },
             'medium':{
                 'var': 20,
@@ -82,7 +81,7 @@ parser.add_argument('-am',
                     action='store',
                     help="The path of the dataset with delp programs (in json format)",
                     dest="am",
-                    type=utils.get_all_delp,
+                    type=get_all_delp,
                     required=True)
 parser.add_argument('-af',
                     help='Annotation Function setting',
