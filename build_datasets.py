@@ -2,7 +2,7 @@ import argparse
 from buildKBs import *
 from utilsExp import *
 
-class Experiment:
+class Datasets:
     
     # Some default configurations for models
     #
@@ -111,7 +111,7 @@ arguments = parser.parse_args()
 ## ]
 #main(arguments.delp, arguments.var_em,
 #    arguments.var_used, arguments.var_annot, arguments.output_path)
-test = Experiment()
+test = Datasets()
 test.build_models(arguments.am, arguments.af_set, arguments.em_set, 
                                                         arguments.output_path)
 
