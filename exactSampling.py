@@ -44,7 +44,8 @@ class Sampling:
         literals.append(np.random.choice(self.literals[levels[-1]],1)[0])
 
         self.results["status"] = {lit : copy.copy(status) for lit in literals}
-        return list(set(literals))
+        #return list(set(literals))
+        return literals
     
 
     def start_exact_sampling(self):
@@ -53,10 +54,10 @@ class Sampling:
         known_programs = 0
         # Get the most "interesting" literals (from level > 0)
         lit_to_query = self.filter_literals()
-        print_ok("\nStarting exact sampling on " + str(n_worlds) + " worlds") 
+        #print_ok("\nStarting exact sampling on " + str(n_worlds) + " worlds") 
         initial_time = time.time()
         for i in range(n_worlds): 
-            print(i, end="\r")
+            #print(i, end="\r")
             # Get world in list format
             world, evidence = self.wsUtils.id_world_to_format(i)
             # Get the probability of the world
@@ -75,7 +76,7 @@ class Sampling:
             for lit, status in status.items():
                 self.results["status"][lit][status] += 1
                 self.results["status"][lit]['p' + status] += prob_world
-        
+        print_ok(self.result_path + "complete")
         execution_time = time.time() - initial_time
         self.results["data"] = {
                 "n_worlds": n_worlds,
