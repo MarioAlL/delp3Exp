@@ -71,16 +71,15 @@ class WorldProgramUtils:
         pass
 
     
-    def known_program(self, id_program: int) -> bool:
-        if id_program in self.delp_programs:
-            return True
-        else:
-            return False
+    def known_program(self, id_program: int):
+        try:
+            return self.delp_programs[id_program]
+        except KeyError:
+            return -1
+   
 
-    
-    def get_status(self, id_program: int):
-        return self.delp_programs[id_program]
-    
+    def unique_programs(self) -> int:
+        return len(self.delp_programs.keys())
     
     def map_world_to_delp(self, model: list, world: list):
         delp = ''
