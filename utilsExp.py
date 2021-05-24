@@ -54,7 +54,7 @@ def write_results(results: json, path: str):
         status["percUNK"] = get_perc(status["unknown"], worlds)
         status["l"] = status["pyes"]
         status["u"] = 1 - status["pno"]
-        if status["u"] - status["l"] < 0.3:
+        if status["u"] - status["l"] <= 0.5:
             status["flag"] = "INTEREST"
     
     with open(path + "output.json", 'w') as outfile:

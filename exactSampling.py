@@ -14,7 +14,8 @@ status = {
         "pyes": 0.0,
         "pno": 0.0,
         "pundecided": 0.0,
-        "punknown": 0.0
+        "punknown": 0.0,
+        "time": 0.0
         }
 
 class Sampling:
@@ -56,8 +57,9 @@ class Sampling:
         lit_to_query = self.filter_literals()
         #print_ok("\nStarting exact sampling on " + str(n_worlds) + " worlds") 
         initial_time = time.time()
-        for i in range(n_worlds): 
-            #print(i, end="\r")
+        for i in range(n_worlds):
+            if i % 1000 == 0:
+                print(i, end="\r")
             # Get world in list format
             world, evidence = self.wsUtils.id_world_to_format(i)
             # Get the probability of the world
@@ -74,8 +76,9 @@ class Sampling:
                 # status = self.wsUtils.get_status(id_program)
                 known_programs += 1 
             for lit, status in status.items():
-                self.results["status"][lit][status] += 1
-                self.results["status"][lit]['p' + status] += prob_world
+                self.results["status"][lit][status["status"]] += 1
+                self.results["status"][lit]['p' + status["status"]] += prob_world
+                self.results["status"][lit]["time"] += status["time"]
         print_ok(self.result_path + "complete")
         execution_time = time.time() - initial_time
         self.results["data"] = {
