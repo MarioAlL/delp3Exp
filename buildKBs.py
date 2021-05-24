@@ -21,7 +21,9 @@ class CreateDeLP3E:
         self.fa_ann = fa_ann 
         self.var_use_ann = var_use_ann
         self.em_var = em_var
-        self.em_var_use_ann = em_var_use_ann
+        # To consider the "True" as a possible anotation
+        self.em_var_use_ann = list(range(em_var_use_ann))
+        self.em_var_use_ann.append("True")
         self.arcs = arcs
         self.alpha= alpha
         self.tau = tau
@@ -110,6 +112,7 @@ class CreateDeLP3E:
 
 
     def create(self) -> None:
+        created_models = 0
         print_ok("Building models...")
         for path_delp_program in self.delp_programs:
             delp_program = read_json_file(path_delp_program)
@@ -145,4 +148,5 @@ class CreateDeLP3E:
                                     os.path.basename(path_delp_program)[:-5] + '.json', 
                                     'w') as outfile:
                 json.dump(delp3e_model, outfile, indent = 4)
-        print_ok("Models created")
+            created_models += 1   
+        print_ok("Models created: " + str(created_models))

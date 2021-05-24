@@ -30,22 +30,22 @@ class Datasets:
     # Environmental Model
     em_settings = {
             'simple': {
-                'var': 10,
-                'var_use_annot': 10,
-                'arcs': 10,  # To use Tup-Ind
+                'var': 12,
+                'var_use_annot': 12,
+                'arcs': 12,  # To use Tup-Ind
                 'alpha': 0.9,
                 'tau': 1
                 },
             'medium':{
-                'var': 20,
-                'var_use_annot': 20,
-                'arcs': 20,  
+                'var': 18,
+                'var_use_annot': 18,
+                'arcs': 18,
                 'alpha': 0.9,
                 'tau': 1    # Similar to tree structure
                 },
             'complex':{
-                'var': 25,
-                'var_use_annot': 25,
+                'var': 24,
+                'var_use_annot': 24,
                 'arcs': 30,  
                 'alpha': 0.6,
                 'tau': 2
@@ -114,5 +114,3 @@ arguments = parser.parse_args()
 test = Datasets()
 test.build_models(arguments.am, arguments.af_set, arguments.em_set, 
                                                         arguments.output_path)
-
-
