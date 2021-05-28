@@ -162,7 +162,10 @@ class BayesNetwork:
                 asdict = dict(row)
                 world = [int(value) for value in list(asdict.values())]
                 samplesToReturn.append([world, asdict])
-        return samplesToReturn
+        samplesToReturn.sort()
+        unique_samples = list(samplesToReturn for samplesToReturn,_ in itertools.groupby(samplesToReturn))
+        repeated_samples = samples - len(unique_samples)
+        return [unique_samples, repeated_samples]
 
     def gen_samples_with_prob(self, samples):
         self.generator.drawSamples(samples)

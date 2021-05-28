@@ -18,7 +18,7 @@ status = {
         "time": 0.0
         }
 
-class Sampling:
+class Exact:
     def __init__(self, model_path: str, em_path: str, em_name: str, 
                                                             path_output: str):
         model = read_json_file(model_path)
@@ -79,7 +79,7 @@ class Sampling:
                 self.results["status"][lit][status["status"]] += 1
                 self.results["status"][lit]['p' + status["status"]] += prob_world
                 self.results["status"][lit]["time"] += status["time"]
-        print_ok(self.result_path + "complete")
+        print_ok(self.result_path + " complete")
         execution_time = time.time() - initial_time
         self.results["data"] = {
                 "n_worlds": n_worlds,

@@ -3,6 +3,7 @@ import csv
 import re
 from utilsExp import *
 from exactSampling import *
+from sampleRandomSampling import *
 import argparse
 from multiprocessing import Process
 
@@ -11,13 +12,20 @@ class Experiment:
         pass
 
     
-    def exact_sampling(self, models_path: str, output: str, start: int,
-                                                            end: int):
-        models = glob.glob(models_path + 'modeldelp*.json')
-        for index, model in enumerate(models[start:end]):
-            exact = Sampling(model, models_path, 'BNdelp' + str(index), output)
+    def exact_sampling(self, models: list, models_path: str, output: str):
+        for model in models:
+            index = int(re.search(r'\d+', os.path.basename(model)).group())
+            exact = Exact(model, models_path, 'BNdelp' + str(index), output)
             exact.start_exact_sampling()
     
+    
+    def dist_sampling(self, models: list, models_path: str, output: str, samples: int):
+        for model in models:
+            index = int(re.search(r'\d+', os.path.basename(model)).group())
+            exact_values = read_json_file(os.path.dirname(model)+'/par/'+ os.path.basename(model)[:-5] + 'output.json')
+            world_sampling = WorldSampling(model, models_path, 'BNdelp' + str(index), output, exact_values["status"].keys())
+            
+            world_sampling.start_distribution_sampling(samples)
 
     def analyze_results(self, files_path: str):
         results = glob.glob(files_path + 'modeldelp*output.json')
@@ -56,57 +64,92 @@ class Experiment:
             writer.writerows(rows)
 
 
-def exact_parallel(start: int, end: int, group_id: int):
-    experiment.exact_sampling(arguments.path, arguments.out_path, start, end) 
-    print_ok("Group " + str(group_id) + " complete")
+def exact_parallel(models: list):
+    experiment.exact_sampling(models, arguments.path, arguments.out_path) 
+
+
+def sampling_parallel(models: list):
+    experiment.dist_sampling(models, arguments.path, arguments.out_path, int(arguments.sampling))
 
 parser = argparse.ArgumentParser(description = " Script for all experiment")
 parser.add_argument('-exact',
-                    help="To compute the exact values",
+                    help="(bool) To compute the exact values",
                     action='store_true',
                     dest="exact")
-parser.add_argument('-path',
-                    help="Path to read files",
+parser.add_argument('-sampling',
+                    help='To compute world sampling approximation',
                     action='store',
-                    dest="path")
+                    dest="sampling")
+parser.add_argument('-path',
+                    help="Path to read models",
+                    action='store',
+                    dest="path",
+                    required=True)
 parser.add_argument('-analyze',
+                    help="(bool) To analyze time and number of interesting literals",
                     action='store_true',
                     dest='analyze')
 parser.add_argument('-out',
+                    help="Path to save the results",
                     action='store',
-                    dest='out_path')
+                    dest='out_path',
+                    required=True)
 parser.add_argument('-parallel',
-                    help="To run in parallel",
+                    help="(bool) To run in parallel",
                     action="store_true",
                     dest="parallel")
 parser.add_argument('-tocsv',
+                    help="(bool) To generate the results in csv format",
                     action='store_true',
                     dest="tocsv")
-
 
 arguments = parser.parse_args()
 
 experiment = Experiment()
+models = glob.glob(arguments.path + 'modeldelp*.json')
+mid = int(len(models)/2)
+total_models = len(models)
+part1 = models[:mid]
+part2 = models[mid:]
+
 if arguments.tocsv:
     experiment.write_csv(arguments.path)
-if arguments.exact:
+elif arguments.exact:
     if arguments.parallel:
         init_time = time.time()
-        p1 = Process(target=exact_parallel, args=(0,50,1))
-        p2 = Process(target=exact_parallel, args=(50,100,2))
+        p1 = Process(target=exact_parallel, args=(part1,))
+        p2 = Process(target=exact_parallel, args=(part2,))
         print_info("Starting in parallel...")
         p1.start()
         p2.start()
         p1.join()
         p2.join()
         end_time = time.time() - init_time
-        print("parallel time: ", end_time)
+        print("Time to running in parallel: ", end_time)
     else:
         init_time = time.time()
         print_info("Starting in sequencial...")
-        experiment.exact_sampling(arguments.path, arguments.out_path, 0, 10)
-        print_ok("Complete")
+        experiment.exact_sampling(models, arguments.path, arguments.out_path)
         end_time = time.time() - init_time
-        print("sequencial time: ", end_time)
+        print("Time to run in sequencial: ", end_time)
+elif arguments.sampling:
+    if arguments.parallel:
+        init_time = time.time()
+        p1 = Process(target=sampling_parallel, args=(part1,))
+        p2 = Process(target=sampling_parallel, args=(part2,))
+        print_info("Starting in parallel...")
+        p1.start()
+        p2.start()
+        p1.join()
+        p2.join()
+        end_time = time.time() - init_time
+        print("Time to running in parallel: ", end_time)
+    else:
+        init_time = time.time()
+        print_info("Starting in sequencial...")
+        experiment.dist_sampling(models, arguments.path, arguments.out_path, int(arguments.sampling))
+        end_time = time.time() - init_time
+        print("Time to run in sequencial: ", end_time)
+    
 elif arguments.analyze:
     experiment.analyze_results(arguments.path)
