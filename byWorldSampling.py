@@ -34,7 +34,46 @@ class WorldSampling:
         self.results = {}
         self.results["status"] = {lit: copy.copy(status) for lit in literals}
 
-    
+
+    def start_random_sampling(self, samples: int) -> None:
+        known_programs = 0
+        n_worlds = pow(2, self.em_var)
+        lit_to_query = self.results["status"].keys()
+        sampled_worlds = np.random.choice(n_worlds, samples, replace=True)
+        unique_worlds = list(set(sampled_worlds))
+        initial_time = time.time()
+        for sample_world in unique_worlds:
+            # Get world in list format
+            world, evidence = self.wsUtils.id_world_to_format(sample_world)
+            # Get the probability of the world
+            prob_world = self.em.get_sampling_prob(evidence)
+            # Build the delp program for world
+            delp_program, id_program = self.wsUtils.map_world_to_delp(self.model, world)
+            status = self.wsUtils.known_program(id_program)
+            if status == -1:
+                # New delp
+                status = query_to_delp(delp_program, lit_to_query)
+                self.wsUtils.save_program_status(id_program, status)
+            else:
+                # Known program
+                # status = self.wsUtils.get_status(id_program)
+                known_programs += 1 
+            for lit, status in status.items():
+                self.results["status"][lit][status["status"]] += 1
+                self.results["status"][lit]['p' + status["status"]] += prob_world
+                self.results["status"][lit]["time"] += status["time"]
+        print_ok(self.result_path + " complete")
+        execution_time = time.time() - initial_time
+        self.results["data"] = {
+                "n_worlds": samples,
+                "time": execution_time,
+                "known_delp": known_programs,
+                "repeated_worlds": len(sampled_worlds) - len(unique_worlds),
+                "unique_programs": self.wsUtils.unique_programs()
+                }
+        write_results(self.results, self.result_path)
+
+
     def start_distribution_sampling(self, samples: int, ) -> None:
         known_programs = 0
         lit_to_query = self.results["status"].keys()
