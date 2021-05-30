@@ -42,9 +42,9 @@ class Experiment:
         print_ok("Interest: " + str(interest))
 
 
-    def write_csv(self, results_path: str) -> None:
+    def write_exact_csv(self, results_path: str) -> None:
         results = glob.glob(results_path + 'modeldelp*output.json')
-        fieldnames = ['Prog|Lit', 'Exact', 'Time']
+        fieldnames = ['Prog','Lit', 'Exact', 'Time']
         rows =[]
         for result in results:
             n_program = int(re.search(r'\d+', os.path.basename(result)).group())
@@ -53,15 +53,49 @@ class Experiment:
                 if "flag" in status:
                     rows.append(
                         {
-                            'Prog|Lit': str(n_program) + '|' + lit,
+                            'Prog': n_program,
+                            'Lit': lit,
                             'Exact': '[' + format(status["l"],'.4f')  +'-'+ format(status["u"],'.4f')  +']',
                             'Time': format(status["time"],'.2f')
                         }
                     )
-        with open(results_path + 'csvResults.csv', 'w', encoding='utf-8', newline='') as f:
+        ordered_rows = sorted(rows, key=lambda k: k['Prog'])
+        with open(results_path + 'csvExact_Results.csv', 'w', encoding='utf-8', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            writer.writerows(rows)
+            writer.writerows(ordered_rows)
+
+
+    def write_sampling_csv(self, results_path: str) -> None:
+        results = glob.glob(results_path + 'modeldelp*output.json')
+        fieldnames = ['Prog','Lit', 'Intervalo', 'Metric', 'Time', 'Mass']
+        rows = []
+        for result in results:
+            program_name = os.path.basename(result)
+            n_program = int(re.search(r'\d+', program_name).group())
+            data_sampling = read_json_file(result)
+            exact = read_json_file(os.path.dirname(os.path.dirname(os.path.dirname(result)))
+                    + '/par/' + program_name)
+            for lit, status_lit_e in exact["status"].items():
+                if "flag" in status_lit_e:
+                    status_lit_s = data_sampling["status"][lit]
+                    metric = compute_metric([status_lit_s["l"], status_lit_s["u"]],[status_lit_e["l"], status_lit_e["u"]])
+                    mass =  status_lit_s["pyes"] + status_lit_s["pno"] + status_lit_s["pundecided"] + status_lit_s["punknown"]
+                    rows.append(
+                            {
+                                'Prog': n_program,
+                                'Lit': lit,
+                                'Intervalo': '[' + format(status_lit_s["l"],'.4f')  +'-'+ format(status_lit_s["u"],'.4f')  +']',
+                                'Metric': metric,
+                                'Time': format(status_lit_s["time"], '.2f'),
+                                'Mass': format(mass, '.4f')
+                            }    
+                        )       
+        ordered_rows = sorted(rows, key=lambda k: k['Prog'])
+        with open(results_path + 'csvSampling_Results.csv', 'w', encoding='utf-8', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(ordered_rows)
 
 
 def exact_parallel(models: list):
@@ -99,8 +133,8 @@ parser.add_argument('-parallel',
                     action="store_true",
                     dest="parallel")
 parser.add_argument('-tocsv',
-                    help="(bool) To generate the results in csv format",
-                    action='store_true',
+                    help="To generate the results in csv format",
+                    action='store',
                     dest="tocsv")
 
 arguments = parser.parse_args()
@@ -113,7 +147,10 @@ part1 = models[:mid]
 part2 = models[mid:]
 
 if arguments.tocsv:
-    experiment.write_csv(arguments.path)
+    if arguments.tocsv == 'exact':
+        experiment.write_exact_csv(arguments.path)
+    else:
+        experiment.write_sampling_csv(arguments.path)
 elif arguments.exact:
     if arguments.parallel:
         init_time = time.time()
