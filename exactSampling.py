@@ -19,8 +19,8 @@ status = {
         }
 
 class Exact:
-    def __init__(self, model_path: str, em_path: str, em_name: str, 
-                                                            path_output: str):
+    def __init__(self, model_path:str, em_path: str, em_name: str, 
+                                                            path_output: str) -> None:
         model = read_json_file(model_path)
         self.model = model["af"]
         self.em_var = model["em_var"]

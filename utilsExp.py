@@ -14,7 +14,7 @@ def print_error(x): return cprint(x, 'red')
 def print_ok(x): return cprint(x, 'green')
 
 
-def compute_metric(aprox: list, exact: list):
+def compute_metric(aprox:list, exact:list):
     # aprox = [l,u]
     # exact = [l,u]
     width_aprox = aprox[1] - aprox[0]
@@ -78,8 +78,8 @@ def write_results(results: json, path: str):
 
 class WorldProgramUtils:
     def __init__(self, am_dim: int, em_dim: int):
-        self.am_dim = am_dim
-        self.to_format = '{0:0' + str(em_dim) + 'b}'
+        self.to_format_program = '{0:0' + str(am_dim) + 'b}' 
+        self.to_format_world = '{0:0' + str(em_dim) + 'b}'
         # Dictionary to save the delp programs and literals status
         self.delp_programs = {}
         pass
@@ -112,9 +112,14 @@ class WorldProgramUtils:
     def save_program_status(self, id_program: int, status: json):
         self.delp_programs[id_program] = status
 
+    
+    def id_program_to_format(self, id_program):
+        program = [int(digit) for digit in list(self.to_format_program.format(id_program))]
+        return program
+   
 
     def id_world_to_format(self, id_world):
-        world = [int(digit) for digit in list(self.to_format.format(id_world))]
+        world = [int(digit) for digit in list(self.to_format_world.format(id_world))]
         evidence = {i: world[i] for i in range(len(world))}
         return [world, evidence]
     

@@ -26,7 +26,6 @@ class WorldSampling:
         self.model = model["af"]
         self.em_var = model["em_var"]
         self.am_rules = len(model["af"])
-        #self.literals = model["literals"]
         self.em = BayesNetwork(em_name, em_path)
         self.em.load_bn()
         self.result_path = path_output + os.path.basename(model_path[:-5])

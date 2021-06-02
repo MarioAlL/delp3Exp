@@ -4,6 +4,7 @@ import re
 from utilsExp import *
 from exactSampling import *
 from byWorldSampling import *
+from byProgramSampling import *
 import argparse
 from multiprocessing import Process
 
@@ -33,6 +34,15 @@ class Experiment:
             exact_values = read_json_file(os.path.dirname(model)+'/par/'+ os.path.basename(model)[:-5] + 'output.json')
             world_sampling = WorldSampling(model, models_path, 'BNdelp' + str(index), output, exact_values["status"].keys())
             world_sampling.start_random_sampling(samples)
+    
+
+    def program_random_sampling(self, models, models_path, output, samples):
+        for model in models:
+            index =  int(re.search(r'\d+', os.path.basename(model)).group())
+            exact_values = read_json_file(os.path.dirname(model) + '/par/' + os.path.basename(model)[:-5] + 'output.json')
+            program_sampling = ProgramSampling(model, models_path, 'BNdelp' + str(index), output, exact_values["status"].keys())
+            program_sampling.start_random_sampling(samples)
+
 
     def analyze_results(self, files_path: str):
         results = glob.glob(files_path + 'modeldelp*output.json')
@@ -218,7 +228,8 @@ elif arguments.sampling:
         else:
             init_time = time.time()
             print_info("Starting in sequencial...")
-            experiment.random_sampling(models, arguments.path, arguments.out_path, int(arguments.size))
+            #experiment.random_sampling(models, arguments.path, arguments.out_path, int(arguments.size))
+            experiment.program_random_sampling(models, arguments.path, arguments.out_path, int(arguments.size))
             end_time = time.time() - init_time
             print("Time to run in sequencial: ", end_time)
 elif arguments.analyze:
