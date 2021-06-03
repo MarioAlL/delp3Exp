@@ -32,6 +32,13 @@ class WorldSampling:
         self.wsUtils = WorldProgramUtils(self.am_rules, self.em_var)
         self.results = {}
         self.results["status"] = {lit: copy.copy(status) for lit in literals}
+    
+
+    def update_lit_status(self, status, prob_world):
+        for lit, status in status.items():
+            self.results["status"][lit][status["status"]] += 1
+            self.results["status"][lit]['p' + status["status"]] += prob_world
+            self.results["status"][lit]["time"] += status["time"]
 
 
     def start_random_sampling(self, samples: int) -> None:
@@ -57,16 +64,13 @@ class WorldSampling:
                 # Known program
                 # status = self.wsUtils.get_status(id_program)
                 known_programs += 1 
-            for lit, status in status.items():
-                self.results["status"][lit][status["status"]] += 1
-                self.results["status"][lit]['p' + status["status"]] += prob_world
-                self.results["status"][lit]["time"] += status["time"]
+            self.update_lit_status(status, prob_world) 
         print_ok(self.result_path + " complete")
         execution_time = time.time() - initial_time
         self.results["data"] = {
                 "n_worlds": samples,
                 "time": execution_time,
-                "known_delp": known_programs,
+                "repeated_delp": known_programs,
                 "repeated_worlds": len(sampled_worlds) - len(unique_worlds),
                 "unique_programs": self.wsUtils.unique_programs()
                 }
@@ -98,16 +102,13 @@ class WorldSampling:
             else:
                 # Known program
                 known_programs += 1
-            for lit, status in status.items():
-                self.results["status"][lit][status["status"]] += 1
-                self.results["status"][lit]['p' + status["status"]] += prob_world
-                self.results["status"][lit]["time"] += status["time"]
+            self.update_lit_status(status)
         print_ok(self.result_path + " complete")
         execution_time = time.time() - initial_time
         self.results["data"] = {
                 "n_worlds": samples,
                 "time": execution_time,
-                "known_delp": known_programs,
+                "repeated_delp": known_programs,
                 "repeated_worlds": repeated_worlds,
                 "unique_programs": self.wsUtils.unique_programs()
                 }

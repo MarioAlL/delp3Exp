@@ -149,7 +149,11 @@ class BayesNetwork:
 
     def get_sampling_prob(self, evidence):
         self.ie.setEvidence(evidence)
-        return self.ie.evidenceProbability()
+        try:
+            return self.ie.evidenceProbability()
+        except:
+            # Proability join = 0
+            return -1
 
     def gen_samples(self, samples):
         self.generator.drawSamples(samples)

@@ -3,6 +3,7 @@ import json
 import os
 import glob
 import copy
+import re
 
 """ General Utils"""
 def print_info(x): return cprint(x, 'grey', 'on_white')
@@ -147,3 +148,65 @@ class WorldProgramUtils:
             return True
         else:
             return eval(self.format_form(form, world))
+
+
+    def is_evidence_ok(self, evidence, key, value):
+        try:
+            if evidence[key] == value:
+                return True
+            else:
+                return False
+        except KeyError:
+            return True
+
+
+    def get_program_evidence(self, rule_annot_status):
+        delp_program = ''
+        evidence = {}
+        for rule, annot, status in rule_annot_status:
+            if annot == "True" or annot == "":
+                delp_program += rule
+            elif annot == "not True":
+                pass
+            else:
+                em_var = re.search(r'\d+', annot).group() 
+                if status:
+                    # The annotation must be True
+                    if 'not' in annot:
+                        # The em_var must be False
+                        if self.is_evidence_ok(evidence, em_var, 0):
+                            evidence[em_var] = 0
+                            delp_program += rule
+                        else:
+                            # Inconsisten Program
+                            return [-1,-1]
+                            break
+                    else:
+                        # The em_var must be True
+                        if self.is_evidence_ok(evidence, em_var, 1):
+                            evidence[em_var] = 1
+                            delp_program += rule
+                        else:
+                            # Inconsisten Program
+                            return [-1,-1]
+                            break
+                else:
+                    # The annotation must be False
+                    if 'not' in annot:
+                        # The em_var must be True
+                        if self.is_evidence_ok(evidence, em_var, 1):
+                            evidence[em_var] = 1
+                        else:
+                            # Inconsisten Program
+                            return [-1,-1]
+                            break
+                    else:
+                        # The em_var must be False 
+                        if self.is_evidence_ok(evidence, em_var, 0):
+                            evidence[em_var] = 0
+                        else:
+                            # Inconsisten Program
+                            return [-1,-1]
+                            break
+        return [delp_program, evidence]            
+
