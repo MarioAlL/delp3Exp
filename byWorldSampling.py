@@ -68,7 +68,7 @@ class WorldSampling:
         print_ok(self.result_path + " complete")
         execution_time = time.time() - initial_time
         self.results["data"] = {
-                "n_worlds": samples,
+                "n_samples": samples,
                 "time": execution_time,
                 "repeated_delp": known_programs,
                 "repeated_worlds": len(sampled_worlds) - len(unique_worlds),
@@ -102,11 +102,11 @@ class WorldSampling:
             else:
                 # Known program
                 known_programs += 1
-            self.update_lit_status(status)
+            self.update_lit_status(status, prob_world)
         print_ok(self.result_path + " complete")
         execution_time = time.time() - initial_time
         self.results["data"] = {
-                "n_worlds": samples,
+                "n_samples": samples,
                 "time": execution_time,
                 "repeated_delp": known_programs,
                 "repeated_worlds": repeated_worlds,

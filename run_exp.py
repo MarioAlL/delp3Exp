@@ -37,11 +37,12 @@ class Experiment:
     
 
     def program_random_sampling(self, models, models_path, output, samples):
-        for model in models:
+        for model in models[:1]:
             index =  int(re.search(r'\d+', os.path.basename(model)).group())
             exact_values = read_json_file(os.path.dirname(model) + '/par/' + os.path.basename(model)[:-5] + 'output.json')
             program_sampling = ProgramSampling(model, models_path, 'BNdelp' + str(index), output, exact_values["status"].keys())
-            program_sampling.start_random_sampling(samples)
+            #program_sampling.start_random_sampling(samples)
+            program_sampling.start_prefilter_sampling(samples)
 
 
     def analyze_results(self, files_path: str):

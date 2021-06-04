@@ -71,9 +71,9 @@ class ProgramSampling:
                 inconsistent_programs += 1
         print_ok(self.result_path + " complete")
         execution_time = time.time() - initial_time
-        repetead_programs = len(sampled_programs) - len(unique_programs)
+        repetead_programs = samples - len(unique_programs)
         self.results["data"] = {
-                "n_worlds": samples,
+                "n_samples": samples,
                 "time": execution_time,
                 "repetead_delp": repetead_programs,
                 "inconsistent_delp": inconsistent_programs,
@@ -82,3 +82,37 @@ class ProgramSampling:
         write_results(self.results, self.result_path)
 
 
+    def start_prefilter_sampling(self, perc_samples):
+        print(self.result_path)
+        inconsistent_programs = 0
+        lit_to_query = self.results["status"].keys()
+        rule_annot_status = [[rule[0], rule[1], True] for rule in self.model]
+        initial_time = time.time()
+        sub_worlds_rep = self.wsUtils.get_sub_worlds_random(rule_annot_status, 
+                                                                    perc_samples, 
+                                                                    False)
+        sub_worlds_evidences = sub_worlds_rep[0]
+        for sub_world in sub_worlds_evidences:
+            prob_world = self.em.get_sampling_prob(sub_world[1])
+            # Build the delp program for world
+            delp_program, id_program = self.wsUtils.map_world_to_delp(self.model, sub_world[0])
+            status = self.wsUtils.known_program(id_program)
+            if status == -1:
+                # New delp
+                status = query_to_delp(delp_program, lit_to_query)
+                self.wsUtils.save_program_status(id_program, status)
+            else:
+                # Known program
+                known_programs += 1
+            self.update_lit_status(status, prob_world)
+        print_ok(self.result_path + " complete")
+        execution_time = time.time() - initial_time
+        repetead_programs = sub_worlds_rep[1]
+        self.results["data"] = {
+                "n_samples": sub_worlds_rep[2],
+                "time": execution_time,
+                "repetead_delp": repetead_programs,
+                "inconsistent_delp": inconsistent_programs,
+                "unique_delp": self.wsUtils.unique_programs()
+                }
+        write_results(self.results, self.result_path)
