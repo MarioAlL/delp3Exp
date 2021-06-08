@@ -2,6 +2,7 @@
 !/.gitignore
 tags*
 __pycache__/
+Docu/
 *.py[cod]
 *$py.class
 .env

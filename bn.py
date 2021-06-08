@@ -153,7 +153,7 @@ class BayesNetwork:
             return self.ie.evidenceProbability()
         except:
             # Proability join = 0
-            return -1
+            return -1 
 
     def gen_samples(self, samples):
         self.generator.drawSamples(samples)

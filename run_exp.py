@@ -13,39 +13,91 @@ class Experiment:
         pass
 
     
-    def exact_sampling(self, models: list, models_path: str, output: str):
-        for model in models:
-            index = int(re.search(r'\d+', os.path.basename(model)).group())
-            exact = Exact(model, models_path, 'BNdelp' + str(index), output)
-            exact.start_exact_sampling()
+    def exact_sampling(self, models, models_path, output, approach):
+        """
+        :params
+            -models: list
+            -models_path: list
+            -output: list
+            -approach: str = ['worlds', 'programs']
+        """
+        if approach == 'worlds':
+            # By worlds
+            for model in models:
+                index = re.search(r'\d+', gfn(model)).group()
+                exact = Exact(model, models_path, 'BNdelp' + index, output)
+                exact.start_world_exact_sampling()
+        else:
+            # By programs
+            for model in models:
+                index = re.search(r'\d+', gfn(model)).group()
+                exact = Exact(model, models_path, 'BNdelp' + index, output)
+                exact.start_program_exact_sampling()
     
     
-    def dist_sampling(self, models: list, models_path: str, output: str, samples: int):
-        for model in models:
-            index = int(re.search(r'\d+', os.path.basename(model)).group())
-            exact_values = read_json_file(os.path.dirname(model)+'/par/'+ os.path.basename(model)[:-5] + 'output.json')
-            world_sampling = WorldSampling(model, models_path, 'BNdelp' + str(index), output, exact_values["status"].keys())
-            world_sampling.start_distribution_sampling(samples)
+    def by_world_sampling(self, models, models_path, output, samples, source):
+        """
+        :params
+            -models: list
+            -models_path: list
+            -output: list
+            -samples: int
+            -source: str = ['dist', 'random']
+        """
+        if source == 'info':
+            # Sampling from probability distribution
+            for model in models:
+                index = re.search(r'\d+', gfn(model)).group()
+                exact_values = read_json_file(gfnexact(model))
+                interest_lit = exact_values["status"].keys()
+                world_sampling = WorldSampling(model, models_path, gbn(index), 
+                                                        output, interest_lit)
+                world_sampling.start_distribution_sampling(samples)
+        else:
+            # Random sampling
+            for model in models:
+                index = re.search(r'\d+', gfn(model)).group()
+                exact_values = read_json_file(gfnexact(model))
+                interest_lit = exact_values["status"].keys()
+                world_sampling = WorldSampling(model, models_path, gbn(index), 
+                                                        output, interest_lit)
+                world_sampling.start_random_sampling(samples)
 
 
-    def random_sampling(self, models: list, models_path: str, output: str, samples: int):
-        for model in models:
-            index = int(re.search(r'\d+', os.path.basename(model)).group())
-            exact_values = read_json_file(os.path.dirname(model)+'/par/'+ os.path.basename(model)[:-5] + 'output.json')
-            world_sampling = WorldSampling(model, models_path, 'BNdelp' + str(index), output, exact_values["status"].keys())
-            world_sampling.start_random_sampling(samples)
-    
+    def by_delp_sampling(self, models, models_path, output, samples, source):
+        """
+        :params
+            -models: list
+            -models_path: list
+            -output: list
+            -samples: int
+            -amfilter: bool 
+        """
+        if source == 'info':
+            # Filtering delp with em variables used
+            for model in models:
+                index = re.search(r'\d+', gfn(model)).group()
+                exact_values = read_json_file(gfnexact(model))
+                interest_lit = exact_values["status"].keys()
+                delp_sampling = ProgramSampling(model, models_path, gbn(index), 
+                                                        output, interest_lit)
+                program_sampling.start_prefilter_sampling(samples)
+        else:
+            # Random delp sample from all possible combinations of rules
+            for model in models:
+                index = re.search(r'\d+', gfn(model)).group()
+                exact_values = read_json_file(gfnexact(model))
+                interest_lit = exact_values["status"].keys()
+                delp_sampling = ProgramSampling(model, models_path, gbn(index), 
+                                                        output, interest_lit)
+                program_sampling.start_random_sampling(samples)
 
-    def program_random_sampling(self, models, models_path, output, samples):
-        for model in models[:1]:
-            index =  int(re.search(r'\d+', os.path.basename(model)).group())
-            exact_values = read_json_file(os.path.dirname(model) + '/par/' + os.path.basename(model)[:-5] + 'output.json')
-            program_sampling = ProgramSampling(model, models_path, 'BNdelp' + str(index), output, exact_values["status"].keys())
-            #program_sampling.start_random_sampling(samples)
-            program_sampling.start_prefilter_sampling(samples)
 
-
-    def analyze_results(self, files_path: str):
+    def analyze_results(self, files_path):
+        """
+        :params
+            -files_path: str
+        """
         results = glob.glob(files_path + 'modeldelp*output.json')
         total_time = 0.0
         interest = 0
@@ -60,25 +112,31 @@ class Experiment:
         print_ok("Interest: " + str(interest))
 
 
-    def write_exact_csv(self, results_path: str) -> None:
+    def write_exact_csv(self, results_path):
+        """
+        :params
+            -results_path: str
+        """
         results = glob.glob(results_path + 'modeldelp*output.json')
         fieldnames = ['Prog','Lit', 'Exact', 'Time']
         rows =[]
         for result in results:
-            n_program = int(re.search(r'\d+', os.path.basename(result)).group())
+            n_program = re.search(r'\d+', gfn(result)).group()
             data = read_json_file(result)
             for lit, status in data["status"].items():
                 if "flag" in status:
+                    interval = '['+gf4(status["l"])+'-'+gf4(status["u"])+']'
                     rows.append(
                         {
                             'Prog': n_program,
                             'Lit': lit,
-                            'Exact': '[' + format(status["l"],'.4f')  +'-'+ format(status["u"],'.4f')  +']',
+                            'Exact': interval,
                             'Time': format(status["time"],'.2f')
                         }
                     )
         ordered_rows = sorted(rows, key=lambda k: k['Prog'])
-        with open(results_path + 'csvExact_Results.csv', 'w', encoding='utf-8', newline='') as f:
+        with open(results_path + 'csvE_Results.csv', 'w', encoding='utf-8',
+                                                            newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(ordered_rows)
@@ -89,149 +147,151 @@ class Experiment:
         fieldnames = ['Prog','Lit', 'Intervalo', 'Metric', 'Time', 'Mass']
         rows = []
         for result in results:
-            program_name = os.path.basename(result)
-            n_program = int(re.search(r'\d+', program_name).group())
+            program_name = gfn(result)
+            n_program = re.search(r'\d+', program_name).group()
             data_sampling = read_json_file(result)
-            exact = read_json_file(os.path.dirname(os.path.dirname(os.path.dirname(result)))
-                    + '/par/' + program_name)
-            for lit, status_lit_e in exact["status"].items():
-                if "flag" in status_lit_e:
-                    status_lit_s = data_sampling["status"][lit]
-                    metric = compute_metric([status_lit_s["l"], status_lit_s["u"]],[status_lit_e["l"], status_lit_e["u"]])
-                    mass =  status_lit_s["pyes"] + status_lit_s["pno"] + status_lit_s["pundecided"] + status_lit_s["punknown"]
+            exact = read_json_file(gfnexactSam(result) + program_name)
+            for lit, lit_e in exact["status"].items():
+                if "flag" in lit_e:
+                    lit_s = data_sampling["status"][lit]
+                    intervalo = '['+gf4(lit_s["l"])+'-'+gf4(lit_s["u"])+']'
+                    metric = compute_metric([lit_s["l"], lit_s["u"]],
+                                            [lit_e["l"], lit_e["u"]])
+                    mass =  (lit_s["pyes"] + lit_s["pno"] + 
+                            lit_s["pundecided"] + lit_s["punknown"])
                     rows.append(
                             {
                                 'Prog': n_program,
                                 'Lit': lit,
-                                'Intervalo': '[' + format(status_lit_s["l"],'.4f')  +'-'+ format(status_lit_s["u"],'.4f')  +']',
+                                'Intervalo': intervalo,
                                 'Metric': metric,
-                                'Time': format(status_lit_s["time"], '.2f'),
+                                'Time': format(lit_s["time"], '.2f'),
                                 'Mass': format(mass, '.4f')
                             }    
                         )       
         ordered_rows = sorted(rows, key=lambda k: k['Prog'])
-        with open(results_path + 'csvSampling_Results.csv', 'w', encoding='utf-8', newline='') as f:
+        with open(results_path + 'csvS_Results.csv', 'w', encoding='utf-8', 
+                                                            newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(ordered_rows)
 
 
-def exact_parallel(models: list):
-    experiment.exact_sampling(models, arguments.path, arguments.out_path) 
+def run_parallel(models, obj_exp, func, params):
+    # Params is a tuple
+    mid = int(len(models)/2)
+    total_models = len(models)
+    models_1 = models[:mid]
+    models_2 = models[mid:]
+    init_time = time.time()
+    p1 = Process(target=getattr(obj_exp,str(func)), args=(models_1,) + params)
+    p2 = Process(target=getattr(obj_exp,str(func)), args=(models_2,) + params)
+    print_info("Starting in parallel...")
+    p1.start()
+    p2.start()
+    p1.join()
+    p2.join()
+    end_time = time.time() - init_time
+    print("Time to running in parallel: ", end_time)
 
 
-def sampling_parallel(models: list, sampling: str):
-    if sampling == 'dist':
-        experiment.dist_sampling(models, arguments.path, arguments.out_path, int(arguments.size))
-    else:
-        experiment.random_sampling(models, arguments.path, arguments.out_path, int(arguments.size))
+# Params definition:
+parser = argparse.ArgumentParser(description = "Script for all experiment")
 
-parser = argparse.ArgumentParser(description = " Script for all experiment")
+parser.add_argument('-path',
+                    help="Path to read files",
+                    action='store',
+                    dest="path",
+                    required=True)
+
+parser.add_argument('-out',
+                    help="Path to save the results",
+                    action='store',
+                    dest='out',
+                    required=True)
+## For sampling
+parser.add_argument('-approach',
+                    help="Approach to use",
+                    choices=['worlds','programs'],
+                    action='store',
+                    dest='approach',
+                    required=True)
+
 parser.add_argument('-exact',
                     help="(bool) To compute the exact values",
                     action='store_true',
                     dest="exact")
+
 parser.add_argument('-sampling',
-                    help='To compute world sampling approximation',
-                    choices=['dist','random'],
+                    help='To compute sampling approximation',
+                    choices=['info','random'],
                     action='store',
                     dest="sampling")
+
 parser.add_argument('-size',
-                    help='Number of sample to generate',
+                    help='Percentage of samples to generate',
+                    type=int,
                     action='store',
                     dest='size')
-parser.add_argument('-path',
-                    help="Path to read models",
-                    action='store',
-                    dest="path",
-                    required=True)
-parser.add_argument('-analyze',
-                    help="(bool) To analyze time and number of interesting literals",
-                    action='store_true',
-                    dest='analyze')
-parser.add_argument('-out',
-                    help="Path to save the results",
-                    action='store',
-                    dest='out_path',
-                    required=True)
+
 parser.add_argument('-parallel',
                     help="(bool) To run in parallel",
                     action="store_true",
                     dest="parallel")
+## For analyze results
+parser.add_argument('-analyze',
+                    help="(bool) To analyze the results",
+                    action='store_true',
+                    dest='analyze')
+
 parser.add_argument('-tocsv',
                     help="To generate the results in csv format",
+                    choices=['exact','sampling'],
                     action='store',
                     dest="tocsv")
 
-arguments = parser.parse_args()
+args = parser.parse_args()
 
-experiment = Experiment()
-models = glob.glob(arguments.path + 'modeldelp*.json')
-mid = int(len(models)/2)
-total_models = len(models)
-part1 = models[:mid]
-part2 = models[mid:]
+exp = Experiment()
+# Get all models
+models = glob.glob(args.path + 'modeldelp*.json')
 
-if arguments.tocsv:
-    if arguments.tocsv == 'exact':
-        experiment.write_exact_csv(arguments.path)
+
+# To generate the csv files:
+if args.tocsv:
+    if args.tocsv == 'exact':
+        exp.write_exact_csv(args.path)
     else:
-        experiment.write_sampling_csv(arguments.path)
-elif arguments.exact:
-    if arguments.parallel:
-        init_time = time.time()
-        p1 = Process(target=exact_parallel, args=(part1,))
-        p2 = Process(target=exact_parallel, args=(part2,))
-        print_info("Starting in parallel...")
-        p1.start()
-        p2.start()
-        p1.join()
-        p2.join()
-        end_time = time.time() - init_time
-        print("Time to running in parallel: ", end_time)
+        exp.write_sampling_csv(args.path)
+# To analyze the results:
+elif args.analyze:
+    exp.analyze_results(args.path)
+# To run exact:
+elif args.exact:
+    if args.parallel:
+        run_parallel(models, exp, 'exact_sampling', (args.path, args.out, 
+                                                                args.approach))
     else:
-        init_time = time.time()
-        print_info("Starting in sequencial...")
-        experiment.exact_sampling(models, arguments.path, arguments.out_path)
-        end_time = time.time() - init_time
-        print("Time to run in sequencial: ", end_time)
-elif arguments.sampling:
-    if arguments.sampling ==  'dist':
-        if arguments.parallel:
-            init_time = time.time()
-            p1 = Process(target=sampling_parallel, args=(part1,'dist',))
-            p2 = Process(target=sampling_parallel, args=(part2,'dist',))
-            print_info("Starting in parallel...")
-            p1.start()
-            p2.start()
-            p1.join()
-            p2.join()
-            end_time = time.time() - init_time
-            print("Time to running in parallel: ", end_time)
+        exp.exact_sampling(models, args.path, args.out, args.approach)
+# To run sampling
+elif args.sampling:
+    if args.parallel:
+        if args.approach == 'worlds':
+            # By worlds in parallel
+            run_parallel(models, exp, 'by_world_sampling', (args.path, args.out,
+                                                            args.size,
+                                                            args.sampling))
         else:
-            init_time = time.time()
-            print_info("Starting in sequencial...")
-            experiment.dist_sampling(models, arguments.path, arguments.out_path, int(arguments.size))
-            end_time = time.time() - init_time
-            print("Time to run in sequencial: ", end_time)
+            # By delp in parallel
+            run_parallel(models, exp, 'by_delp_sampling', (args.path, args.out,
+                                                            args.size,
+                                                            args.sampling))
     else:
-        if arguments.parallel:
-            init_time = time.time()
-            p1 = Process(target=sampling_parallel, args=(part1,'random',))
-            p2 = Process(target=sampling_parallel, args=(part2,'random',))
-            print_info("Starting in parallel...")
-            p1.start()
-            p2.start()
-            p1.join()
-            p2.join()
-            end_time = time.time() - init_time
-            print("Time to running in parallel: ", end_time)
+        if args.approach == 'worlds':
+            # By worlds in sequential
+            exp.by_world_sampling(models, args.path, args.out, args.size, 
+                                                                args.sampling)
         else:
-            init_time = time.time()
-            print_info("Starting in sequencial...")
-            #experiment.random_sampling(models, arguments.path, arguments.out_path, int(arguments.size))
-            experiment.program_random_sampling(models, arguments.path, arguments.out_path, int(arguments.size))
-            end_time = time.time() - init_time
-            print("Time to run in sequencial: ", end_time)
-elif arguments.analyze:
-    experiment.analyze_results(arguments.path)
+            # By delp in sequential
+            exp.by_delp_sampling(models, args.path, args.out, args.size, 
+                                                                args.sampling)

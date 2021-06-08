@@ -15,6 +15,30 @@ def print_error(x): return cprint(x, 'red')
 def print_ok(x): return cprint(x, 'green')
 
 
+def gf4(number):
+    return format(number, '.4f')
+
+
+def gfn(model_path):
+    "Get File Name"
+    return os.path.basename(model_path)
+
+
+def gfnexact(model_path):
+    "Get File Name with exact values"
+    dir_name = os.path.dirname(model_path)
+    file_name = gfn(model_path)[:-5]
+    return dir_name + '/par/' + file_name + 'output.json'
+
+
+def gfnexactSam(result_path):
+    dir_name = os.path.dirname(os.path.dirname(os.path.dirname(result)))
+    return dir_name + '/par/'
+
+def gbn(index):
+    return 'BNdelp' + index
+
+
 def compute_metric(aprox:list, exact:list):
     # aprox = [l,u]
     # exact = [l,u]
@@ -213,27 +237,20 @@ class WorldProgramUtils:
         return [delp_program, evidence]            
 
 
-    def get_sub_worlds_random(self, rule_annot_status, perc_samples, exact):
+    def get_sub_worlds(self, rule_annot_status, perc_samples, exact):
         # Compute and return worlds that generate differents delp programs
         # this worlds only consider the em variables that are used in the 
         # program's annotation
         sub_worlds = []
         aux = [re.findall(r'\d+', annot[1]) for annot in rule_annot_status]
         used_vars =[item for sublist in aux for item in sublist] 
-        #used_vars = [re.search(r'\d+',var[1]).group() 
-        #        if ("True" not in var[1]) and ("" != var[1]) 
-        #        else "True" 
-        #        for var in rule_annot_status]
         in_list = list(set(used_vars))
-        #in_list.remove('True')
-        print(in_list)
         n_used_vars = len(in_list)
          
         sub_world_format_binary = '{0:0' + str(n_used_vars) + 'b}'
         n_unique_delp = pow(2, n_used_vars)
-        print("Possible Programs: " + str(n_unique_delp))
-        samples = int((perc_samples * n_unique_delp) / 100)
         if not exact:
+            samples = int((perc_samples * n_unique_delp) / 100)
             random_sub_worlds = np.random.choice(n_unique_delp, samples, replace=True)
             unique_sub_worlds = list(set(random_sub_worlds))
             for sub_world in unique_sub_worlds:
@@ -255,4 +272,4 @@ class WorldProgramUtils:
                     sub_world_format[int(var)] = int(sub_world_values[index])
                     evidence[var] = int(sub_world_values[index])
                 sub_worlds.append([sub_world_format, evidence])
-            return [sub_worlds, 0, samples]
+            return [sub_worlds, 0, n_unique_delp]

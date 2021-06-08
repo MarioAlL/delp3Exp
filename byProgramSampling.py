@@ -83,7 +83,6 @@ class ProgramSampling:
 
 
     def start_prefilter_sampling(self, perc_samples):
-        print(self.result_path)
         inconsistent_programs = 0
         lit_to_query = self.results["status"].keys()
         rule_annot_status = [[rule[0], rule[1], True] for rule in self.model]
@@ -103,15 +102,15 @@ class ProgramSampling:
                 self.wsUtils.save_program_status(id_program, status)
             else:
                 # Known program
-                known_programs += 1
+                known_program += 1
             self.update_lit_status(status, prob_world)
         print_ok(self.result_path + " complete")
         execution_time = time.time() - initial_time
-        repetead_programs = sub_worlds_rep[1]
+        repeated_programs = sub_worlds_rep[1]
         self.results["data"] = {
                 "n_samples": sub_worlds_rep[2],
                 "time": execution_time,
-                "repetead_delp": repetead_programs,
+                "repetead_delp": repeated_programs,
                 "inconsistent_delp": inconsistent_programs,
                 "unique_delp": self.wsUtils.unique_programs()
                 }
