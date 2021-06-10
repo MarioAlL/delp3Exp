@@ -144,8 +144,7 @@ class CreateDeLP3E:
                     }
             
             # Save the delp3e file
-            with open(self.save + 'model' + gfn(path_delp)[:-5] + '.json','w') 
-                                                                    as outfile:
+            with open(self.save + 'model' + gfn(path_delp)[:-5] + '.json','w') as outfile:
                 json.dump(delp3e_model, outfile, indent = 4)
             created_models += 1   
         print_ok("Models created: " + str(created_models))
