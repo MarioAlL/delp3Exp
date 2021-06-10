@@ -81,7 +81,7 @@ class Experiment:
                 interest_lit = exact_values["status"].keys()
                 delp_sampling = ProgramSampling(model, models_path, gbn(index), 
                                                         output, interest_lit)
-                program_sampling.start_prefilter_sampling(samples)
+                delp_sampling.start_prefilter_sampling(samples)
         else:
             # Random delp sample from all possible combinations of rules
             for model in models:
@@ -90,7 +90,7 @@ class Experiment:
                 interest_lit = exact_values["status"].keys()
                 delp_sampling = ProgramSampling(model, models_path, gbn(index), 
                                                         output, interest_lit)
-                program_sampling.start_random_sampling(samples)
+                delp_sampling.start_random_sampling(samples)
 
 
     def analyze_results(self, files_path):
@@ -128,7 +128,7 @@ class Experiment:
                     interval = '['+gf4(status["l"])+'-'+gf4(status["u"])+']'
                     rows.append(
                         {
-                            'Prog': n_program,
+                            'Prog': int(n_program),
                             'Lit': lit,
                             'Exact': interval,
                             'Time': format(status["time"],'.2f')
@@ -161,7 +161,7 @@ class Experiment:
                             lit_s["pundecided"] + lit_s["punknown"])
                     rows.append(
                             {
-                                'Prog': n_program,
+                                'Prog': int(n_program),
                                 'Lit': lit,
                                 'Intervalo': intervalo,
                                 'Metric': metric,
@@ -249,12 +249,20 @@ parser.add_argument('-tocsv',
                     choices=['exact','sampling'],
                     action='store',
                     dest="tocsv")
+## For test one particular models
+parser.add_argument('-test',
+                    help="Path of one model",
+                    action='store',
+                    dest='one_path')
 
 args = parser.parse_args()
 
 exp = Experiment()
 # Get all models
-models = glob.glob(args.path + 'modeldelp*.json')
+if args.one_path:
+    models = [args.one_path]
+else:    
+    models = glob.glob(args.path + 'modeldelp*.json')
 
 
 # To generate the csv files:

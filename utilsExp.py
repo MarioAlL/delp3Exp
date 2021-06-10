@@ -32,7 +32,7 @@ def gfnexact(model_path):
 
 
 def gfnexactSam(result_path):
-    dir_name = os.path.dirname(os.path.dirname(os.path.dirname(result)))
+    dir_name = os.path.dirname(os.path.dirname(os.path.dirname(result_path)))
     return dir_name + '/par/'
 
 def gbn(index):

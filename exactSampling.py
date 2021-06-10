@@ -105,17 +105,21 @@ class Exact:
                 }
         write_results(self.results, self.result_path)
 
-
+    
     def start_program_exact_sampling(self):
-        inconsistent_programs = 0
+        # Con errores, ya que no itero sobre todos los posibles programas.
+        # Itero sobre todas las posibles combinaciones de mundos (subconjunto de 
+        # todos los mundos posibles en los cuales se cambian solo las variables que 
+        # son utilizadas en el programa), es decir, puede haber programas repetidos.
+        known_programs = 0
         lit_to_query = self.filter_literals()
         #lit_to_query = self.get_all_literals()
         rule_annot = self.model
         initial_time = time.time()
         # Pre filter
         sub_worlds_info = self.wsUtils.get_sub_worlds(rule_annot, 100, True)
-        sub_worlds_evidences, repeated_subworlds, sampled_programs = sub_worlds_info
-        print(len(sub_worlds_evidences))
+        sub_worlds_evidences, rep_subworlds, sampled_programs = sub_worlds_info
+        print_ok(len(sub_worlds_evidences))
         for sub_world in sub_worlds_evidences:
             prob_world = self.em.get_sampling_prob(sub_world[1])
             # Build the delp program for world
@@ -128,16 +132,15 @@ class Exact:
                 self.wsUtils.save_program_status(id_program, status)
             else:
                 # Known program
-                known_program += 1
+                known_programs += 1
             self.update_lit_status(status, prob_world)
         print_ok(self.result_path + " Complete")
         execution_time = time.time() - initial_time
-        repetead_programs = repeated_subworlds
+        repetead_programs = rep_subworlds + known_programs
         self.results["data"] = {
                 "n_samples": sampled_programs,
                 "time": execution_time,
                 "repetead_delp": repetead_programs,
-                "inconsistent_delp": inconsistent_programs,
                 "unique_delp": self.wsUtils.unique_programs()
                 }
         write_results(self.results, self.result_path)

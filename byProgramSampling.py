@@ -84,17 +84,20 @@ class ProgramSampling:
 
     def start_prefilter_sampling(self, perc_samples):
         inconsistent_programs = 0
+        known_programs = 0
         lit_to_query = self.results["status"].keys()
         rule_annot_status = [[rule[0], rule[1], True] for rule in self.model]
         initial_time = time.time()
-        sub_worlds_rep = self.wsUtils.get_sub_worlds_random(rule_annot_status, 
-                                                                    perc_samples, 
-                                                                    False)
+        sub_worlds_rep = self.wsUtils.get_sub_worlds(rule_annot_status, 
+                                                                perc_samples, 
+                                                                False)
         sub_worlds_evidences = sub_worlds_rep[0]
+        print(self.result_path + ' --> ' + str(len(sub_worlds_evidences)))
         for sub_world in sub_worlds_evidences:
             prob_world = self.em.get_sampling_prob(sub_world[1])
             # Build the delp program for world
-            delp_program, id_program = self.wsUtils.map_world_to_delp(self.model, sub_world[0])
+            delp_info = self.wsUtils.map_world_to_delp(self.model, sub_world[0])
+            delp_program, id_program = delp_info 
             status = self.wsUtils.known_program(id_program)
             if status == -1:
                 # New delp
@@ -102,7 +105,7 @@ class ProgramSampling:
                 self.wsUtils.save_program_status(id_program, status)
             else:
                 # Known program
-                known_program += 1
+                known_programs += 1
             self.update_lit_status(status, prob_world)
         print_ok(self.result_path + " complete")
         execution_time = time.time() - initial_time
@@ -110,8 +113,8 @@ class ProgramSampling:
         self.results["data"] = {
                 "n_samples": sub_worlds_rep[2],
                 "time": execution_time,
-                "repetead_delp": repeated_programs,
-                "inconsistent_delp": inconsistent_programs,
-                "unique_delp": self.wsUtils.unique_programs()
+                "repeatead_delp": repeated_programs,
+                "unique_delp": self.wsUtils.unique_programs(),
+                "Errores": known_programs
                 }
         write_results(self.results, self.result_path)
