@@ -81,7 +81,7 @@ class Experiment:
                 interest_lit = exact_values["status"].keys()
                 delp_sampling = ProgramSampling(model, models_path, gbn(index), 
                                                         output, interest_lit)
-                delp_sampling.start_prefilter_sampling(samples)
+                delp_sampling.start_byWorld_prefilter_sampling(samples)
         else:
             # Random delp sample from all possible combinations of rules
             for model in models:
@@ -90,7 +90,7 @@ class Experiment:
                 interest_lit = exact_values["status"].keys()
                 delp_sampling = ProgramSampling(model, models_path, gbn(index), 
                                                         output, interest_lit)
-                delp_sampling.start_random_sampling(samples)
+                delp_sampling.start_random_program_sampling(samples)
 
 
     def analyze_results(self, files_path):
