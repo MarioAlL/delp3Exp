@@ -8,3 +8,4 @@ Docu/
 .env
 .venv
 pruebas.py
+*.pyc

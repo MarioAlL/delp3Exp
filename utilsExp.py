@@ -5,6 +5,8 @@ import glob
 import copy
 import re
 import numpy as np
+from sympy.logic.inference import satisfiable
+from sympy import var
 """ General Utils"""
 def print_info(x): return cprint(x, 'grey', 'on_white')
 
@@ -37,6 +39,15 @@ def gfnexactSam(result_path):
 
 def gbn(index):
     return 'BNdelp' + index
+
+
+def is_always(annot):
+    if annot == 'True' or annot == "":
+        return 1
+    elif annot == 'not True':
+        return 0
+    else:
+        return 'x'
 
 
 def compute_metric(aprox:list, exact:list):
@@ -121,7 +132,16 @@ class WorldProgramUtils:
 
     def unique_programs(self) -> int:
         return len(self.delp_programs.keys())
+   
     
+    def map_bin_to_delp(self, model: list, delp_in_bin:list):
+        delp = ''
+        for index, value in enumerate(delp_in_bin):
+            if value == 1:
+                delp += model[index][0]
+        return delp
+
+
     def map_world_to_delp(self, model: list, world: list):
         delp = ''
         delp_bin = '0b'
@@ -273,3 +293,66 @@ class WorldProgramUtils:
                     evidence[var] = int(sub_world_values[index])
                 sub_worlds.append([sub_world_format, evidence])
             return [sub_worlds, 0, n_unique_delp]
+    
+
+    def adapt_annot(self, annot):
+        if annot.isdigit():
+            return 'x' + annot
+        else:
+            op_repl = annot.replace("and", "&").replace("or", "|").replace("not", "~")
+            in_list = op_repl.split(' ')
+            expr = ' '.join(['x' + element if element.isdigit() else element for element in in_list])
+            return expr
+
+
+    def to_evidence(self, model):
+        evidence = {}
+        for k, v in model.items():
+            if v:
+                evidence[str(k)[1:]] = 1
+            else:
+                evidence[str(k)[1:]] = 0
+        return evidence        
+    
+
+    def get_sampled_annot(self, annot, perc_samples):
+        samples_evid = {}
+        # To construct and evaluate annotations
+        aux = [re.findall(r'\d+', an[1]) for an in annot]
+        used_vars =[item for sublist in aux for item in sublist] 
+        in_list = list(set(used_vars))
+        var(['x' + em_var for em_var in in_list])
+        #
+        n_annot = len(annot)
+        combinations = pow(2, n_annot)
+        format_annot = '{0:0' + str(n_annot) + 'b}'
+        samples = int((perc_samples * combinations) / 100)
+        #samples = 1
+        sampled_values = np.random.choice(combinations, samples, replace=True)
+        unique_samples = list(set(sampled_values))
+        #for sample in range(combinations):
+        for sample in unique_samples:
+            true_list = []
+            false_list = []
+            sample_in_bin = format_annot.format(sample)
+            samples_evid[sample_in_bin] = []
+            for index, value in enumerate(sample_in_bin):
+                if value == '1':
+                    true_list.append(self.adapt_annot(annot[index][1]))
+                else:
+                    false_list.append('~('+self.adapt_annot(annot[index][1])+')')
+            if len(true_list) != 0 and len(false_list) != 0:
+                expression = '(' + ' & '.join(true_list) + ') & (' + ' & '.join(false_list) +')'
+            elif len(true_list) != 0:
+                expression = ' & '.join(true_list)
+            else:
+                expression = '( '+ ' & '.join(false_list)  +' )'
+            models = satisfiable(eval(expression), all_models=True)
+            for model in models:
+                if model:
+                    samples_evid[sample_in_bin].append(self.to_evidence(model))
+        return {
+                'samples_evid': {k: v for k, v in samples_evid.items() if v != []},
+                'samples': samples,
+                'repeated': samples - len(unique_samples)
+                }            
