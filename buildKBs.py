@@ -21,9 +21,9 @@ class CreateDeLP3E:
         self.fa_ann = fa_ann 
         self.var_use_ann = var_use_ann
         self.em_var = em_var
-        # To consider the "True" as a possible anotation
         self.em_var_use_ann = list(range(em_var_use_ann))
-        self.em_var_use_ann.append("True")
+        # To consider the "True" as a possible anotation
+        #self.em_var_use_ann.append("True")
         self.arcs = arcs
         self.alpha= alpha
         self.tau = tau
@@ -70,7 +70,10 @@ class CreateDeLP3E:
 
     def get_variables(self, number: int):
         variables = []
-        rnd_vars = np.random.choice(self.em_var_use_ann, number, replace=False)
+        if number != 1:
+            rnd_vars = np.random.choice(self.em_var_use_ann, number, replace=False)
+        else:
+            rnd_vars = np.random.choice(self.em_var_use_ann + ['True'], number)
         for var in rnd_vars:
             rnd_negation = np.random.random()
             if rnd_negation < self.neg_prob:
