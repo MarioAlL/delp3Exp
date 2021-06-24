@@ -315,7 +315,7 @@ class WorldProgramUtils:
         return evidence        
     
 
-    def get_sampled_annot(self, annot, perc_samples):
+    def get_sampled_annot(self, annot, perc_samples, exact):
         samples_evid = {}
         # To construct and evaluate annotations
         aux = [re.findall(r'\d+', an[1]) for an in annot]
@@ -326,10 +326,14 @@ class WorldProgramUtils:
         n_annot = len(annot)
         combinations = pow(2, n_annot)
         format_annot = '{0:0' + str(n_annot) + 'b}'
-        samples = int((perc_samples * combinations) / 100)
-        #samples = 1
-        sampled_values = np.random.choice(combinations, samples, replace=True)
-        unique_samples = list(set(sampled_values))
+        if not exact:
+            samples = int((perc_samples * combinations) / 100)
+            #samples = 1
+            sampled_values = np.random.choice(combinations, samples, replace=True)
+            unique_samples = list(set(sampled_values))
+        else:
+            samples = combinations
+            unique_samples = range(combinations)
         #for sample in range(combinations):
         for sample in unique_samples:
             true_list = []
