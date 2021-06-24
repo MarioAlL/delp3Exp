@@ -8,4 +8,5 @@ Docu/
 .env
 .venv
 pruebas.py
+globalCore
 *.pyc
