@@ -108,7 +108,7 @@ class ProgramSampling:
         initial_time = time.time()
         sub_worlds_rep = self.wsUtils.get_sub_worlds(rule_annot_status, 
                                                                 perc_samples, 
-                                                                False)
+                                                                True)
         sub_worlds_evidences = sub_worlds_rep[0]
         print(self.result_path + ' --> ' + str(len(sub_worlds_evidences)))
         for sub_world in sub_worlds_evidences:
