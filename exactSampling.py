@@ -122,37 +122,35 @@ class Exact:
     
     def start_program_exact_sampling(self):
         inconsistent_programs = 0
-        known_programs = 0
+        repeated_delp = 0
         lit_to_query = self.filter_literals()
-        rule_annot_status = [[rule[0], rule[1], True] for rule in self.model]
-        initial_time = time.time()
-        sub_worlds_rep = self.wsUtils.get_sub_worlds(rule_annot_status, 
-                                                                perc_samples, 
-                                                                True)
-        sub_worlds_evidences = sub_worlds_rep[0]
-        print(self.result_path + ' --> ' + str(len(sub_worlds_evidences)))
-        for sub_world in sub_worlds_evidences:
-            prob_world = self.em.get_sampling_prob(sub_world[1])
-            # Build the delp program for world
-            delp_info = self.wsUtils.map_world_to_delp(self.model, sub_world[0])
-            delp_program, id_program = delp_info 
-            status = self.wsUtils.known_program(id_program)
-            if status == -1:
-                # New delp
-                status = query_to_delp(delp_program, lit_to_query)
-                self.wsUtils.save_program_status(id_program, status)
+        delp_in_bin = []
+        annotations = []
+        print(self.result_path, end=" ")
+        for index, rule_annot in enumerate(self.model):
+            value = is_always(rule_annot[1])
+            if value != 'x':
+                delp_in_bin.append(value)
             else:
-                # Known program
-                known_programs += 1
-            self.update_lit_status(status, prob_world)
-        print_ok(self.result_path + " complete")
+                delp_in_bin.append(value)
+                annotations.append([index,rule_annot[1]])
+        initial_time = time.time()
+        samples_evid = self.wsUtils.get_sampled_annot(annotations, 100, True)
+        for sample, evidence in samples_evid["samples_evid"].items():
+            for index, var_value in enumerate(sample):
+                delp_in_bin[annotations[index][0]] = int(var_value)
+            delp_program = self.wsUtils.map_bin_to_delp(self.model, delp_in_bin)
+            status = query_to_delp(delp_program, lit_to_query)
+            prob_program = self.compute_prob_prog(evidence, lit_to_query)
+            self.update_lit_status(status, prob_program)
+        print("...complete")
         execution_time = time.time() - initial_time
-        repeated_programs = sub_worlds_rep[1]
+        repeated_delp = samples_evid["repeated"]
+        inconsistent_programs = samples_evid["samples"] - repeated_delp - len(samples_evid["samples_evid"])
         self.results["data"] = {
-                "n_samples": sub_worlds_rep[2],
+                "n_samples": samples_evid["samples"],
                 "time": execution_time,
-                "repeated_delp": repeated_programs,
-                "unique_delp": self.wsUtils.unique_programs(),
-                "Errores": known_programs
+                "repeated_delp": repeated_delp,
+                "inconsistent_delp": inconsistent_programs
                 }
         write_results(self.results, self.result_path)
