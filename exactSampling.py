@@ -123,7 +123,7 @@ class Exact:
     def start_program_exact_sampling(self):
         inconsistent_programs = 0
         known_programs = 0
-        lit_to_query = self.results["status"].keys()
+        lit_to_query = self.filter_literals()
         rule_annot_status = [[rule[0], rule[1], True] for rule in self.model]
         initial_time = time.time()
         sub_worlds_rep = self.wsUtils.get_sub_worlds(rule_annot_status, 
