@@ -89,9 +89,8 @@ class Experiment:
                 exact_values = read_json_file(gfnexact(model))
                 interest_lit = exact_values["status"].keys()
                 delp_sampling = ProgramSampling(model, models_path, gbn(index), 
-                                                        output, interest_lit)
+                                                    output, interest_lit)
                 delp_sampling.start_random_program_sampling(samples)
-
 
     def analyze_results(self, files_path):
         """

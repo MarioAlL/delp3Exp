@@ -41,9 +41,10 @@ class WorldSampling:
             self.results["status"][lit]["time"] += status["time"]
 
 
-    def start_random_sampling(self, samples: int) -> None:
+    def start_random_sampling(self, perc_samples: int) -> None:
         known_programs = 0
         n_worlds = pow(2, self.em_var)
+        samples = int((perc_samples * n_worlds) / 100)
         lit_to_query = self.results["status"].keys()
         sampled_worlds = np.random.choice(n_worlds, samples, replace=True)
         unique_worlds = list(set(sampled_worlds))
@@ -77,13 +78,15 @@ class WorldSampling:
         write_results(self.results, self.result_path)
 
 
-    def start_distribution_sampling(self, samples: int, ) -> None:
+    def start_distribution_sampling(self, perc_samples: int, ) -> None:
         known_programs = 0
         lit_to_query = self.results["status"].keys()
         # Sampling from probability distribution
         #   return unique worlds and the number of repetead worlds
         #   sampled_worlds[0] = list of unique worlds
         #   sampled_worlds[1] = int that represent the number of rep worlds
+        n_worlds = pow(2, self.em_var)
+        samples = int((perc_samples * n_worlds) / 100)
         sampled_worlds = self.em.gen_samples(samples)
         repeated_worlds = sampled_worlds[1]
         initial_time = time.time()

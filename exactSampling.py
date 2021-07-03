@@ -41,6 +41,7 @@ class Exact:
 
     
     def update_lit_status(self, status, prob_world):
+        print(status)
         for lit, status in status.items():
             self.results["status"][lit][status["status"]] += 1
             self.results["status"][lit]['p' + status["status"]] += prob_world
@@ -66,13 +67,15 @@ class Exact:
         literals.append(np.random.choice(self.literals[str(from_levels)],1)[0])
         #Complex one
         literals.append(np.random.choice(self.literals[levels[-1]],1)[0])
-        self.results["status"] = {lit : copy.copy(status) for lit in literals}
-        return literals
+        ls = ['a_4', '~a_8', 'a_7']
+        self.results["status"] = {lit : copy.copy(status) for lit in ls}
+        return ls
     
 
     def compute_prob_prog(self, evidences, literals):
         #total_prob = {lit: 0.0 for lit in literals}
         total_prob = 0.0
+        print(len(evidences))
         for evidence in evidences:
             #for lit, pr in total_prob.items():
             if evidence not in self.know_evid_test:
@@ -124,6 +127,7 @@ class Exact:
         inconsistent_programs = 0
         repeated_delp = 0
         lit_to_query = self.filter_literals()
+        #lit_to_query = ['a_4', '~a_8', 'a_7']
         delp_in_bin = []
         annotations = []
         print(self.result_path, end=" ")

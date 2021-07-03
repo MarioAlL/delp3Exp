@@ -29,26 +29,32 @@ class ProgramSampling:
         self.wsUtils = WorldProgramUtils(self.am_rules, self.em_var)
         self.results = {}
         self.results["status"] = {lit: copy.copy(status) for lit in literals}
-        self.know_evid_test = []
+        #self.know_evid_test = []
+        self.know_evid_test = {lit: {
+            'yes': [],
+            'no': [],
+            'unknown': [],
+            'undecided': []
+            } for lit in literals} 
+        self.sampled_evidence = 0
     
 
     def update_lit_status(self, status, prob_world):
         for lit, status in status.items():
             self.results["status"][lit][status["status"]] += 1
-            self.results["status"][lit]['p' + status["status"]] += prob_world
+            self.results["status"][lit]['p' + status["status"]] += prob_world[lit]
             self.results["status"][lit]["time"] += status["time"]
 
 
-    def compute_prob_prog(self, evidences, literals):
-        #total_prob = {lit: 0.0 for lit in literals}
-        total_prob = 0.0
+    def compute_prob_prog(self, evidences, status):
+        total_prob = {lit: 0.0 for lit in self.know_evid_test.keys()}
+        #total_prob = 0.0
         for evidence in evidences:
-            #for lit, pr in total_prob.items():
-            if evidence not in self.know_evid_test:
-                prob = self.em.get_sampling_prob(evidence)
-                total_prob += prob
-                self.know_evid_test.append(evidence)
-                    #self.know_evid[lit].append(evidence)
+            for lit, state in status.items():
+                if evidence not in self.know_evid_test[lit][state["status"]]:
+                    prob = self.em.get_sampling_prob(evidence)
+                    total_prob[lit] += prob
+                    self.know_evid_test[lit][state["status"]].append(evidence)
         return total_prob    
 
 
@@ -108,7 +114,7 @@ class ProgramSampling:
         initial_time = time.time()
         sub_worlds_rep = self.wsUtils.get_sub_worlds(rule_annot_status, 
                                                                 perc_samples, 
-                                                                True)
+                                                                False)
         sub_worlds_evidences = sub_worlds_rep[0]
         print(self.result_path + ' --> ' + str(len(sub_worlds_evidences)))
         for sub_world in sub_worlds_evidences:
@@ -159,7 +165,7 @@ class ProgramSampling:
                 delp_in_bin[annotations[index][0]] = int(var_value)
             delp_program = self.wsUtils.map_bin_to_delp(self.model, delp_in_bin)
             status = query_to_delp(delp_program, lit_to_query)
-            prob_program = self.compute_prob_prog(evidence, lit_to_query)
+            prob_program = self.compute_prob_prog(evidence, status)
             self.update_lit_status(status, prob_program)
         print("...complete")
         execution_time = time.time() - initial_time

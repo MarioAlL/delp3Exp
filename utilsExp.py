@@ -329,7 +329,7 @@ class WorldProgramUtils:
         if not exact:
             samples = int((perc_samples * combinations) / 100)
             #samples = 1
-            sampled_values = np.random.choice(combinations, samples, replace=True)
+            sampled_values = np.random.choice(combinations, samples, replace=False)
             unique_samples = list(set(sampled_values))
         else:
             samples = combinations
