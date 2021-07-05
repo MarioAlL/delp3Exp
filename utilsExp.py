@@ -1,4 +1,3 @@
-from termcolor import cprint
 import json
 import os
 import glob
@@ -10,41 +9,6 @@ from sympy import var
 
 """ General Utils"""
 
-
-def print_info(x): return cprint(x, 'grey', 'on_white')
-
-
-def print_error(x): return cprint(x, 'red')
-
-
-def print_ok(x): return cprint(x, 'green')
-
-
-def gf4(number):
-    return format(number, '.4f')
-
-
-def gfn(model_path):
-    "Get File Name"
-    return os.path.basename(model_path)
-
-
-def gfnexact(model_path):
-    "Get File Name with exact values"
-    dir_name = os.path.dirname(model_path)
-    file_name = gfn(model_path)[:-5]
-    return dir_name + '/par/' + file_name + 'output.json'
-
-
-def gfnexactSam(result_path):
-    dir_name = os.path.dirname(os.path.dirname(os.path.dirname(result_path)))
-    return dir_name + '/par/'
-
-
-def gbn(index):
-    return 'BNdelp' + index
-
-
 def is_always(annot):
     if annot == 'True' or annot == "":
         return 1
@@ -52,70 +16,6 @@ def is_always(annot):
         return 0
     else:
         return 'x'
-
-
-def compute_metric(aprox: list, exact: list):
-    # aprox = [l,u]
-    # exact = [l,u]
-    width_aprox = aprox[1] - aprox[0]
-    width_exact = exact[1] - exact[0]
-    remainder_aprox = 1 - width_aprox
-    remainder_exact = 1 - width_exact
-    if remainder_exact == 0:
-        metric = 0
-    else:
-        metric = remainder_aprox / remainder_exact
-    return "{:.4f}".format(metric)
-
-
-def read_json_file(path_file):
-    try:
-        file = open(path_file, "r")
-        to_dict = json.load(file)
-        file.close()
-        return to_dict
-    except IOError:
-        # print(e)
-        print_error("Error trying to open the file: %s" % path_file)
-        exit()
-    except ValueError:
-        # print(e)
-        print_error("JSON incorrect format: %s" % path_file)
-        exit()
-
-
-def get_all_delp(dataset_path):
-    if not os.path.isdir(dataset_path):
-        print_error("The specified path does not exist")
-        exit()
-    else:
-        delp_programs = glob.glob(dataset_path + 'delp*.json')
-        if len(delp_programs) != 0:
-            return delp_programs
-        else:
-            print_error("The specified path is empty")
-            exit()
-
-
-def get_perc(number, total):
-    return "{:.2f}".format((number * 100) / total)
-
-
-def write_results(results: json, path: str):
-    n_samples = results["data"]["n_samples"]
-    for lit, status in results["status"].items():
-        status["percY"] = get_perc(status["yes"], n_samples)
-        status["percN"] = get_perc(status["no"], n_samples)
-        status["percU"] = get_perc(status["undecided"], n_samples)
-        status["percUNK"] = get_perc(status["unknown"], n_samples)
-        status["l"] = status["pyes"]
-        status["u"] = 1 - status["pno"]
-        if status["u"] - status["l"] <= 0.5:
-            status["flag"] = "INTEREST"
-
-    with open(path + "output.json", 'w') as outfile:
-        json.dump(results, outfile, indent=4)
-
 
 """"""
 
