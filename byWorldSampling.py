@@ -7,21 +7,22 @@ import time
 import numpy as np
 
 status = {
-        "yes": 0,
-        "no": 0,
-        "undecided": 0,
-        "unknown": 0,
-        "pyes": 0.0,
-        "pno": 0.0,
-        "pundecided": 0.0,
-        "punknown": 0.0,
-        "time": 0.0
-        }
+    "yes": 0,
+    "no": 0,
+    "undecided": 0,
+    "unknown": 0,
+    "pyes": 0.0,
+    "pno": 0.0,
+    "pundecided": 0.0,
+    "punknown": 0.0,
+    "time": 0.0
+}
+
 
 class WorldSampling:
-    def __init__(self, model_path: str, em_path: str, em_name: str, 
-                                                            path_output: str,
-                                                            literals: dict):
+    def __init__(self, model_path: str, em_path: str, em_name: str,
+                 path_output: str,
+                 literals: dict):
         model = read_json_file(model_path)
         self.model = model["af"]
         self.em_var = model["em_var"]
@@ -32,14 +33,12 @@ class WorldSampling:
         self.wsUtils = WorldProgramUtils(self.am_rules, self.em_var)
         self.results = {}
         self.results["status"] = {lit: copy.copy(status) for lit in literals}
-    
 
     def update_lit_status(self, status, prob_world):
         for lit, status in status.items():
             self.results["status"][lit][status["status"]] += 1
             self.results["status"][lit]['p' + status["status"]] += prob_world
             self.results["status"][lit]["time"] += status["time"]
-
 
     def start_random_sampling(self, perc_samples: int) -> None:
         known_programs = 0
@@ -64,19 +63,18 @@ class WorldSampling:
             else:
                 # Known program
                 # status = self.wsUtils.get_status(id_program)
-                known_programs += 1 
-            self.update_lit_status(status, prob_world) 
+                known_programs += 1
+            self.update_lit_status(status, prob_world)
         print_ok(self.result_path + " complete")
         execution_time = time.time() - initial_time
         self.results["data"] = {
-                "n_samples": samples,
-                "time": execution_time,
-                "repeated_delp": known_programs,
-                "repeated_worlds": len(sampled_worlds) - len(unique_worlds),
-                "unique_programs": self.wsUtils.unique_programs()
-                }
+            "n_samples": samples,
+            "time": execution_time,
+            "repeated_delp": known_programs,
+            "repeated_worlds": len(sampled_worlds) - len(unique_worlds),
+            "unique_programs": self.wsUtils.unique_programs()
+        }
         write_results(self.results, self.result_path)
-
 
     def start_distribution_sampling(self, perc_samples: int, ) -> None:
         known_programs = 0
@@ -109,13 +107,10 @@ class WorldSampling:
         print_ok(self.result_path + " complete")
         execution_time = time.time() - initial_time
         self.results["data"] = {
-                "n_samples": samples,
-                "time": execution_time,
-                "repeated_delp": known_programs,
-                "repeated_worlds": repeated_worlds,
-                "unique_programs": self.wsUtils.unique_programs()
-                }
+            "n_samples": samples,
+            "time": execution_time,
+            "repeated_delp": known_programs,
+            "repeated_worlds": repeated_worlds,
+            "unique_programs": self.wsUtils.unique_programs()
+        }
         write_results(self.results, self.result_path)
-
-
-

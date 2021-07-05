@@ -7,7 +7,10 @@ import re
 import numpy as np
 from sympy.logic.inference import satisfiable
 from sympy import var
+
 """ General Utils"""
+
+
 def print_info(x): return cprint(x, 'grey', 'on_white')
 
 
@@ -37,6 +40,7 @@ def gfnexactSam(result_path):
     dir_name = os.path.dirname(os.path.dirname(os.path.dirname(result_path)))
     return dir_name + '/par/'
 
+
 def gbn(index):
     return 'BNdelp' + index
 
@@ -50,7 +54,7 @@ def is_always(annot):
         return 'x'
 
 
-def compute_metric(aprox:list, exact:list):
+def compute_metric(aprox: list, exact: list):
     # aprox = [l,u]
     # exact = [l,u]
     width_aprox = aprox[1] - aprox[0]
@@ -64,36 +68,38 @@ def compute_metric(aprox:list, exact:list):
     return "{:.4f}".format(metric)
 
 
-def read_json_file(pathFile):
-        try:
-            file = open(pathFile, "r")
-            toDict = json.load(file)
-            file.close()
-            return toDict
-        except IOError:
-            # print(e)
-            print_error_msj("Error trying to open the file: %s" % (pathFile))
-            exit()
-        except ValueError:
-            # print(e)
-            print_error_msj("JSON incorrect format: %s" % (pathFile))
-            exit()
+def read_json_file(path_file):
+    try:
+        file = open(path_file, "r")
+        to_dict = json.load(file)
+        file.close()
+        return to_dict
+    except IOError:
+        # print(e)
+        print_error("Error trying to open the file: %s" % path_file)
+        exit()
+    except ValueError:
+        # print(e)
+        print_error("JSON incorrect format: %s" % path_file)
+        exit()
 
 
 def get_all_delp(dataset_path):
-        if not os.path.isdir(dataset_path):
-            self.print_error("The specified path does not exist")
-            exit()
+    if not os.path.isdir(dataset_path):
+        print_error("The specified path does not exist")
+        exit()
+    else:
+        delp_programs = glob.glob(dataset_path + 'delp*.json')
+        if len(delp_programs) != 0:
+            return delp_programs
         else:
-            delp_programs = glob.glob(dataset_path + 'delp*.json')
-            if len(delp_programs) != 0:
-                return delp_programs
-            else:
-                self.print_error("The specified path is empty")
-                exit()
+            print_error("The specified path is empty")
+            exit()
+
 
 def get_perc(number, total):
     return "{:.2f}".format((number * 100) / total)
+
 
 def write_results(results: json, path: str):
     n_samples = results["data"]["n_samples"]
@@ -106,9 +112,11 @@ def write_results(results: json, path: str):
         status["u"] = 1 - status["pno"]
         if status["u"] - status["l"] <= 0.5:
             status["flag"] = "INTEREST"
-    
+
     with open(path + "output.json", 'w') as outfile:
-        json.dump(results, outfile, indent = 4)
+        json.dump(results, outfile, indent=4)
+
+
 """"""
 
 
@@ -116,31 +124,27 @@ class WorldProgramUtils:
     def __init__(self, am_dim: int, em_dim: int):
         self.am_dim = am_dim
         self.em_dim = em_dim
-        self.to_format_program = '{0:0' + str(self.am_dim) + 'b}' 
+        self.to_format_program = '{0:0' + str(self.am_dim) + 'b}'
         self.to_format_world = '{0:0' + str(self.em_dim) + 'b}'
         # Dictionary to save the delp programs and literals status
         self.delp_programs = {}
         pass
 
-    
     def known_program(self, id_program: int):
         try:
             return self.delp_programs[id_program]
         except KeyError:
             return -1
-   
 
     def unique_programs(self) -> int:
         return len(self.delp_programs.keys())
-   
-    
-    def map_bin_to_delp(self, model: list, delp_in_bin:list):
+
+    def map_bin_to_delp(self, model: list, delp_in_bin: list):
         delp = ''
         for index, value in enumerate(delp_in_bin):
             if value == 1:
                 delp += model[index][0]
         return delp
-
 
     def map_world_to_delp(self, model: list, world: list):
         delp = ''
@@ -155,46 +159,40 @@ class WorldProgramUtils:
         id_program = int(delp_bin, 2)
         return [delp, id_program]
 
-    
     def save_program_status(self, id_program: int, status: json):
         self.delp_programs[id_program] = status
 
-    
     def id_program_to_format(self, id_program):
         program = [int(digit) for digit in list(self.to_format_program.format(id_program))]
         return program
-   
 
     def id_world_to_format(self, id_world):
         world = [int(digit) for digit in list(self.to_format_world.format(id_world))]
         evidence = {i: world[i] for i in range(len(world))}
         return [world, evidence]
-    
-    
-    def format_form(self, form, world): 
+
+    def format_form(self, form, world):
         to_eval = ''
         var_status = ''
         aux = form.strip().split(' ')
         for element in aux:
-            try: 
+            try:
                 if world[int(element)] == 1:
                     var_status = "True"
                 else:
                     var_status = "False"
             except ValueError:
-                var_status = element 
-            
-            to_eval = to_eval + " " + var_status 
+                var_status = element
+
+            to_eval = to_eval + " " + var_status
 
         return to_eval
-
 
     def check_form(self, form: str, world: list):
         if form == "" or form == "True":
             return True
         else:
             return eval(self.format_form(form, world))
-
 
     def is_evidence_ok(self, evidence, key, value):
         try:
@@ -205,7 +203,6 @@ class WorldProgramUtils:
         except KeyError:
             return True
 
-
     def get_program_evidence(self, rule_annot_status):
         delp_program = ''
         evidence = {}
@@ -215,7 +212,7 @@ class WorldProgramUtils:
             elif annot == "not True":
                 pass
             else:
-                em_var = re.search(r'\d+', annot).group() 
+                em_var = re.search(r'\d+', annot).group()
                 if status:
                     # The annotation must be True
                     if 'not' in annot:
@@ -225,7 +222,7 @@ class WorldProgramUtils:
                             delp_program += rule
                         else:
                             # Inconsisten Program
-                            return [-1,-1]
+                            return [-1, -1]
                             break
                     else:
                         # The em_var must be True
@@ -234,7 +231,7 @@ class WorldProgramUtils:
                             delp_program += rule
                         else:
                             # Inconsisten Program
-                            return [-1,-1]
+                            return [-1, -1]
                             break
                 else:
                     # The annotation must be False
@@ -244,7 +241,7 @@ class WorldProgramUtils:
                             evidence[em_var] = 1
                         else:
                             # Inconsisten Program
-                            return [-1,-1]
+                            return [-1, -1]
                             break
                     else:
                         # The em_var must be False 
@@ -252,10 +249,9 @@ class WorldProgramUtils:
                             evidence[em_var] = 0
                         else:
                             # Inconsisten Program
-                            return [-1,-1]
+                            return [-1, -1]
                             break
-        return [delp_program, evidence]            
-
+        return [delp_program, evidence]
 
     def get_sub_worlds(self, rule_annot_status, perc_samples, exact):
         # Compute and return worlds that generate differents delp programs
@@ -263,10 +259,10 @@ class WorldProgramUtils:
         # program's annotation
         sub_worlds = []
         aux = [re.findall(r'\d+', annot[1]) for annot in rule_annot_status]
-        used_vars =[item for sublist in aux for item in sublist] 
+        used_vars = [item for sublist in aux for item in sublist]
         in_list = list(set(used_vars))
         n_used_vars = len(in_list)
-         
+
         sub_world_format_binary = '{0:0' + str(n_used_vars) + 'b}'
         n_unique_delp = pow(2, n_used_vars)
         if not exact:
@@ -293,7 +289,6 @@ class WorldProgramUtils:
                     evidence[var] = int(sub_world_values[index])
                 sub_worlds.append([sub_world_format, evidence])
             return [sub_worlds, 0, n_unique_delp]
-    
 
     def adapt_annot(self, annot):
         if annot.isdigit():
@@ -304,7 +299,6 @@ class WorldProgramUtils:
             expr = ' '.join(['x' + element if element.isdigit() else element for element in in_list])
             return expr
 
-
     def to_evidence(self, model):
         evidence = {}
         for k, v in model.items():
@@ -312,14 +306,13 @@ class WorldProgramUtils:
                 evidence[str(k)[1:]] = 1
             else:
                 evidence[str(k)[1:]] = 0
-        return evidence        
-    
+        return evidence
 
     def get_sampled_annot(self, annot, perc_samples, exact):
         samples_evid = {}
         # To construct and evaluate annotations
         aux = [re.findall(r'\d+', an[1]) for an in annot]
-        used_vars =[item for sublist in aux for item in sublist] 
+        used_vars = [item for sublist in aux for item in sublist]
         in_list = list(set(used_vars))
         var(['x' + em_var for em_var in in_list])
         #
@@ -328,13 +321,13 @@ class WorldProgramUtils:
         format_annot = '{0:0' + str(n_annot) + 'b}'
         if not exact:
             samples = int((perc_samples * combinations) / 100)
-            #samples = 1
+            # samples = 1
             sampled_values = np.random.choice(combinations, samples, replace=False)
             unique_samples = list(set(sampled_values))
         else:
             samples = combinations
             unique_samples = range(combinations)
-        #for sample in range(combinations):
+        # for sample in range(combinations):
         for sample in unique_samples:
             true_list = []
             false_list = []
@@ -344,19 +337,19 @@ class WorldProgramUtils:
                 if value == '1':
                     true_list.append(self.adapt_annot(annot[index][1]))
                 else:
-                    false_list.append('~('+self.adapt_annot(annot[index][1])+')')
+                    false_list.append('~(' + self.adapt_annot(annot[index][1]) + ')')
             if len(true_list) != 0 and len(false_list) != 0:
-                expression = '(' + ' & '.join(true_list) + ') & (' + ' & '.join(false_list) +')'
+                expression = '(' + ' & '.join(true_list) + ') & (' + ' & '.join(false_list) + ')'
             elif len(true_list) != 0:
                 expression = ' & '.join(true_list)
             else:
-                expression = '( '+ ' & '.join(false_list)  +' )'
+                expression = '( ' + ' & '.join(false_list) + ' )'
             models = satisfiable(eval(expression), all_models=True)
             for model in models:
                 if model:
                     samples_evid[sample_in_bin].append(self.to_evidence(model))
         return {
-                'samples_evid': {k: v for k, v in samples_evid.items() if v != []},
-                'samples': samples,
-                'repeated': samples - len(unique_samples)
-                }            
+            'samples_evid': {k: v for k, v in samples_evid.items() if v != []},
+            'samples': samples,
+            'repeated': samples - len(unique_samples)
+        }
