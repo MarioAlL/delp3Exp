@@ -7,18 +7,6 @@ import numpy as np
 from sympy.logic.inference import satisfiable
 from sympy import var
 
-""" General Utils"""
-
-def is_always(annot):
-    if annot == 'True' or annot == "":
-        return 1
-    elif annot == 'not True':
-        return 0
-    else:
-        return 'x'
-
-""""""
-
 
 class WorldProgramUtils:
     def __init__(self, am_dim: int, em_dim: int):
@@ -29,70 +17,6 @@ class WorldProgramUtils:
         # Dictionary to save the delp programs and literals status
         self.delp_programs = {}
         pass
-
-    def known_program(self, id_program: int):
-        try:
-            return self.delp_programs[id_program]
-        except KeyError:
-            return -1
-
-    def unique_programs(self) -> int:
-        return len(self.delp_programs.keys())
-
-    def map_bin_to_delp(self, model: list, delp_in_bin: list):
-        delp = ''
-        for index, value in enumerate(delp_in_bin):
-            if value == 1:
-                delp += model[index][0]
-        return delp
-
-    def map_world_to_delp(self, model: list, world: list):
-        delp = ''
-        delp_bin = '0b'
-        for rule, form in model:
-            check_form = self.check_form(form, world)
-            if check_form:
-                delp = delp + rule
-                delp_bin += '1'
-            else:
-                delp_bin += '0'
-        id_program = int(delp_bin, 2)
-        return [delp, id_program]
-
-    def save_program_status(self, id_program: int, status: json):
-        self.delp_programs[id_program] = status
-
-    def id_program_to_format(self, id_program):
-        program = [int(digit) for digit in list(self.to_format_program.format(id_program))]
-        return program
-
-    def id_world_to_format(self, id_world):
-        world = [int(digit) for digit in list(self.to_format_world.format(id_world))]
-        evidence = {i: world[i] for i in range(len(world))}
-        return [world, evidence]
-
-    def format_form(self, form, world):
-        to_eval = ''
-        var_status = ''
-        aux = form.strip().split(' ')
-        for element in aux:
-            try:
-                if world[int(element)] == 1:
-                    var_status = "True"
-                else:
-                    var_status = "False"
-            except ValueError:
-                var_status = element
-
-            to_eval = to_eval + " " + var_status
-
-        return to_eval
-
-    def check_form(self, form: str, world: list):
-        if form == "" or form == "True":
-            return True
-        else:
-            return eval(self.format_form(form, world))
 
     def is_evidence_ok(self, evidence, key, value):
         try:

@@ -1,116 +1,74 @@
-import sys
 import copy
+from utils import *
 from consultDeLP import *
-from bn import *
-from utilsExp import *
 import time
 import numpy as np
 
-status = {
-    "yes": 0,
-    "no": 0,
-    "undecided": 0,
-    "unknown": 0,
-    "pyes": 0.0,
-    "pno": 0.0,
-    "pundecided": 0.0,
-    "punknown": 0.0,
-    "time": 0.0
-}
 
-
-class WorldSampling:
-    def __init__(self, model_path: str, em_path: str, em_name: str,
-                 path_output: str,
-                 literals: dict):
-        model = read_json_file(model_path)
-        self.model = model["af"]
-        self.em_var = model["em_var"]
-        self.am_rules = len(model["af"])
-        self.em = BayesNetwork(em_name, em_path)
-        self.em.load_bn()
-        self.result_path = path_output + os.path.basename(model_path[:-5])
-        self.wsUtils = WorldProgramUtils(self.am_rules, self.em_var)
+class Worlds:
+    def __init__(self, model_path: str, save_path: str):
+        # Utils to handle model
+        self.utils = Model(model_path, save_path)
+        # To save all results
         self.results = {}
-        self.results["status"] = {lit: copy.copy(status) for lit in literals}
+        # To control repeated delp programs
+        self.known_delp = KnownSamples()
 
-    def update_lit_status(self, status, prob_world):
-        for lit, status in status.items():
-            self.results["status"][lit][status["status"]] += 1
-            self.results["status"][lit]['p' + status["status"]] += prob_world
-            self.results["status"][lit]["time"] += status["time"]
-
-    def start_random_sampling(self, perc_samples: int) -> None:
-        known_programs = 0
-        n_worlds = pow(2, self.em_var)
-        samples = int((perc_samples * n_worlds) / 100)
-        lit_to_query = self.results["status"].keys()
-        sampled_worlds = np.random.choice(n_worlds, samples, replace=True)
-        unique_worlds = list(set(sampled_worlds))
+    def consult_worlds(self, worlds: list, lit_to_query: list) -> float:
+        """To iterate over sampled worlds consulting for literals"""
         initial_time = time.time()
-        for sample_world in unique_worlds:
+        for sampled_world in worlds:
             # Get world in list format
-            world, evidence = self.wsUtils.id_world_to_format(sample_world)
+            world, evidence = self.utils.id_world_to_bin(sampled_world)
             # Get the probability of the world
-            prob_world = self.em.get_sampling_prob(evidence)
+            prob_world = self.utils.em.get_sampling_prob(evidence)
             # Build the delp program for world
-            delp_program, id_program = self.wsUtils.map_world_to_delp(self.model, world)
-            status = self.wsUtils.known_program(id_program)
+            delp_program, id_program = self.utils.map_world_to_delp(world)
+            status = self.known_delp.search_sample(id_program)
             if status == -1:
                 # New delp
                 status = query_to_delp(delp_program, lit_to_query)
-                self.wsUtils.save_program_status(id_program, status)
-            else:
-                # Known program
-                # status = self.wsUtils.get_status(id_program)
-                known_programs += 1
-            self.update_lit_status(status, prob_world)
-        print_ok(self.result_path + " complete")
+                self.known_delp.save_sample(id_program, status)
+            for literal, response in status.items():
+                # Update number of worlds
+                self.results['status'][literal][response['status']] += 1
+                # Update probabilities
+                self.results['status'][literal]['p' + status['status']] += prob_world
+                # Save time to compute the query in the world
+                self.results['status'][literal]['time'] += status['time']
+        print(self.utils.model_path + "<<Complete>>")
         execution_time = time.time() - initial_time
-        self.results["data"] = {
-            "n_samples": samples,
-            "time": execution_time,
-            "repeated_delp": known_programs,
-            "repeated_worlds": len(sampled_worlds) - len(unique_worlds),
-            "unique_programs": self.wsUtils.unique_programs()
-        }
-        write_results(self.results, self.result_path)
+        return execution_time
 
-    def start_distribution_sampling(self, perc_samples: int, ) -> None:
-        known_programs = 0
-        lit_to_query = self.results["status"].keys()
-        # Sampling from probability distribution
-        #   return unique worlds and the number of repetead worlds
-        #   sampled_worlds[0] = list of unique worlds
-        #   sampled_worlds[1] = int that represent the number of rep worlds
-        n_worlds = pow(2, self.em_var)
-        samples = int((perc_samples * n_worlds) / 100)
-        sampled_worlds = self.em.gen_samples(samples)
-        repeated_worlds = sampled_worlds[1]
-        initial_time = time.time()
-        for sample_world in sampled_worlds[0]:
-            # Get world in list format
-            world, evidence = sample_world
-            # Get the probability of the world
-            prob_world = self.em.get_sampling_prob(evidence)
-            # Build the delp program for world
-            delp_program, id_program = self.wsUtils.map_world_to_delp(self.model, world)
-            status = self.wsUtils.known_program(id_program)
-            if status == -1:
-                # New delp
-                status = query_to_delp(delp_program, lit_to_query)
-                self.wsUtils.save_program_status(id_program, status)
+    def start_sampling(self, percentile_samples: int, source: str, info: str) -> None:
+        """Select randomly a subset of all possible worlds to perform an
+        approximation of the exact interval"""
+        # Total number of possible worlds
+        n_worlds = self.utils.get_n_worlds()
+        lit_to_query = self.utils.get_lit_to_consult()
+        self.results['status'] = {lit: copy.copy(STATUS) for lit in lit_to_query}
+        if percentile_samples == 100:
+            # To compute the exact interval
+            n_samples = n_worlds
+            unique_worlds = range(n_samples)
+            repeated_worlds = 0
+        else:
+            n_samples = get_int_percentile(percentile_samples, n_worlds)
+            if source == 'distribution':
+                # Sample from Probability Distribution Function
+                unique_worlds, repeated_worlds = self.utils.em.gen_samples(n_samples)
             else:
-                # Known program
-                known_programs += 1
-            self.update_lit_status(status, prob_world)
-        print_ok(self.result_path + " complete")
-        execution_time = time.time() - initial_time
-        self.results["data"] = {
-            "n_samples": samples,
-            "time": execution_time,
-            "repeated_delp": known_programs,
-            "repeated_worlds": repeated_worlds,
-            "unique_programs": self.wsUtils.unique_programs()
+                # Sample worlds randomly
+                sampled_worlds = np.random.choice(n_worlds, n_samples, replace=True)
+                unique_worlds = list(set(sampled_worlds))
+                repeated_worlds = n_samples - len(unique_worlds)
+        # Consult in each sampled world
+        execution_time = self.consult_worlds(unique_worlds, lit_to_query)
+        self.results['data'] = {
+            'n_samples': n_samples,
+            'time': execution_time,
+            'repeated_worlds': repeated_worlds,
+            'repeated_delp': n_samples - self.known_delp.get_unique_samples(),
+            'unique_delp': self.known_delp.get_unique_samples()
         }
-        write_results(self.results, self.result_path)
+        write_results(self.results, self.utils.save_path, info)
