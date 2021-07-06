@@ -1,4 +1,4 @@
-import copy
+from progress.counter import Counter
 from utils import *
 from consultDeLP import *
 import time
@@ -16,6 +16,8 @@ class Worlds:
 
     def consult_worlds(self, worlds: list, lit_to_query: list) -> float:
         """To iterate over sampled worlds consulting for literals"""
+        self.results['status'] = {lit: copy.copy(STATUS) for lit in lit_to_query}
+        bar = Counter('Processing ', max=len(worlds))
         initial_time = time.time()
         for sampled_world in worlds:
             # Get world in list format
@@ -33,10 +35,12 @@ class Worlds:
                 # Update number of worlds
                 self.results['status'][literal][response['status']] += 1
                 # Update probabilities
-                self.results['status'][literal]['p' + status['status']] += prob_world
+                self.results['status'][literal]['p' + response['status']] += prob_world
                 # Save time to compute the query in the world
-                self.results['status'][literal]['time'] += status['time']
-        print(self.utils.model_path + "<<Complete>>")
+                self.results['status'][literal]['time'] += response['time']
+            bar.next()
+        bar.finish()
+        print(self.utils.model_path + " <<Complete>>")
         execution_time = time.time() - initial_time
         return execution_time
 
@@ -45,15 +49,15 @@ class Worlds:
         approximation of the exact interval"""
         # Total number of possible worlds
         n_worlds = self.utils.get_n_worlds()
-        lit_to_query = self.utils.get_lit_to_consult()
-        self.results['status'] = {lit: copy.copy(STATUS) for lit in lit_to_query}
         if percentile_samples == 100:
             # To compute the exact interval
+            lit_to_query = self.utils.search_lit_to_consult()
             n_samples = n_worlds
             unique_worlds = range(n_samples)
             repeated_worlds = 0
         else:
-            n_samples = get_int_percentile(percentile_samples, n_worlds)
+            lit_to_query = self.utils.get_interest_lit()
+            n_samples = int(get_percentile(percentile_samples, n_worlds))
             if source == 'distribution':
                 # Sample from Probability Distribution Function
                 unique_worlds, repeated_worlds = self.utils.em.gen_samples(n_samples)
