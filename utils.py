@@ -1,6 +1,8 @@
+import copy
 import re
 import json
 import os
+import numpy as np
 from bn import BayesNetwork
 
 """Generals Names and Values"""
@@ -42,7 +44,7 @@ def gfn(path: str) -> str:
 
 def gdn(path: str) -> str:
     """Get the directory name in a specified path"""
-    return os.path.dirname(path)
+    return os.path.dirname(path) + '/'
 
 
 def gfnexact(path: str) -> str:
@@ -66,19 +68,19 @@ def gbn(index: str) -> str:
     return BN_NAMES + index
 
 
-def get_int_percentile(percentile: int, total: int) -> int:
+def get_percentile(percentile: int, total: int) -> float:
     """Return the <percentile> percentile of <total> (the integer part)"""
-    return int((percentile * 100) / total)
+    return (percentile * 100) / total
 
 
 def write_results(results: json, path: str, approach: str) -> None:
     """To compute and save results"""
     n_samples = results['data']['n_samples']
     for lit, status in results['status'].items():
-        status['percY'] = get_int_percentile(status['yes'], n_samples)
-        status['percN'] = get_int_percentile(status['no'], n_samples)
-        status['percU'] = get_int_percentile(status['undecided'], n_samples)
-        status['percUNK'] = get_int_percentile(status['unknown'], n_samples)
+        status['percY'] = get_percentile(status['yes'], n_samples)
+        status['percN'] = get_percentile(status['no'], n_samples)
+        status['percU'] = get_percentile(status['undecided'], n_samples)
+        status['percUNK'] = get_percentile(status['unknown'], n_samples)
         status['l'] = status['pyes']
         status['u'] = 1 - status['pno']
         if status['u'] - status['l'] <= WIDTH_OF_INTEREST:
@@ -199,12 +201,28 @@ class Model:
         id_delp = bin_to_int(delp_in_bin)
         return [delp, id_delp]
 
-    def get_lit_to_consult(self) -> list:
+    def get_interest_lit(self) -> list:
         """Return the literals with interest intervals of the model
         (for sampling)"""
         exact_file_name = gfnexact(self.model_path)
         literals = read_json_file(exact_file_name)['status'].keys()
         return literals
+
+    def search_lit_to_consult(self):
+        """Search literals to consult in the model"""
+        literals = []
+        levels = list(self.literals_in_model.keys())
+        # Simple one
+        literals.append(np.random.choice(self.literals_in_model["0"], 1)[0])
+        # Medium one
+        from_levels = np.random.choice(levels[1:-1], 1)[0]
+        literals.append(np.random.choice(self.literals_in_model[str(from_levels)], 1)[0])
+        # Complex one
+        literals.append(np.random.choice(self.literals_in_model[levels[-1]], 1)[0])
+        # To test
+        literals = ['~d_12', 'a_7', '~a_7']
+        return literals
+
 
 
 class KnownSamples:

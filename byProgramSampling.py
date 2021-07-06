@@ -178,3 +178,39 @@ class ProgramSampling:
                 "inconsistent_delp": inconsistent_programs
                 }
         write_results(self.results, self.result_path)
+
+def start_program_exact_sampling(self):
+    inconsistent_programs = 0
+    repeated_delp = 0
+    lit_to_query = self.filter_literals()
+    #lit_to_query = ['a_4', '~a_8', 'a_7']
+    delp_in_bin = []
+    annotations = []
+    print(self.result_path, end=" ")
+    for index, rule_annot in enumerate(self.model):
+        value = is_always(rule_annot[1])
+        if value != 'x':
+            delp_in_bin.append(value)
+        else:
+            delp_in_bin.append(value)
+            annotations.append([index,rule_annot[1]])
+    initial_time = time.time()
+    samples_evid = self.wsUtils.get_sampled_annot(annotations, 100, True)
+    for sample, evidence in samples_evid["samples_evid"].items():
+        for index, var_value in enumerate(sample):
+            delp_in_bin[annotations[index][0]] = int(var_value)
+        delp_program = self.wsUtils.map_bin_to_delp(self.model, delp_in_bin)
+        status = query_to_delp(delp_program, lit_to_query)
+        prob_program = self.compute_prob_prog(evidence, lit_to_query)
+        self.update_lit_status(status, prob_program)
+    print("...complete")
+    execution_time = time.time() - initial_time
+    repeated_delp = samples_evid["repeated"]
+    inconsistent_programs = samples_evid["samples"] - repeated_delp - len(samples_evid["samples_evid"])
+    self.results["data"] = {
+        "n_samples": samples_evid["samples"],
+        "time": execution_time,
+        "repeated_delp": repeated_delp,
+        "inconsistent_delp": inconsistent_programs
+    }
+    write_results(self.results, self.result_path)
