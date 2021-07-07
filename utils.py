@@ -51,7 +51,7 @@ def gfnexact(path: str) -> str:
     """Get the file name that contains the exact values of the model specified in path"""
     dir_name = os.path.dirname(path)
     model_name = gfn(path)[:-5]
-    return dir_name + '/par/' + model_name + '_ep.json'
+    return dir_name + '/par/' + model_name + 'output.json'
 
 
 def to_decimal_format(number: float, decimals: int) -> str:
@@ -70,7 +70,7 @@ def gbn(index: str) -> str:
 
 def get_percentile(percentile: int, total: int) -> float:
     """Return the <percentile> percentile of <total> (the integer part)"""
-    return (percentile * 100) / total
+    return (percentile * total) / 100
 
 
 def write_results(results: json, path: str, approach: str) -> None:
@@ -222,7 +222,6 @@ class Model:
         # To test
         literals = ['~d_12', 'a_7', '~a_7']
         return literals
-
 
 
 class KnownSamples:
