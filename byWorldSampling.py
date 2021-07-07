@@ -1,3 +1,4 @@
+import numpy
 from progress.counter import Counter
 from utils import *
 from consultDeLP import *
@@ -17,11 +18,16 @@ class Worlds:
     def consult_worlds(self, worlds: list, lit_to_query: list) -> float:
         """To iterate over sampled worlds consulting for literals"""
         self.results['status'] = {lit: copy.copy(STATUS) for lit in lit_to_query}
+        # To control if worlds are sampled or generated
+        if isinstance(worlds[0], (int, np.int64)):
+            to_convert = 'self.utils.id_world_to_bin(sampled_world)'
+        else:
+            to_convert = 'sampled_world'
         bar = Counter('Processing ', max=len(worlds))
         initial_time = time.time()
         for sampled_world in worlds:
             # Get world in list format
-            world, evidence = self.utils.id_world_to_bin(sampled_world)
+            world, evidence = eval(to_convert)
             # Get the probability of the world
             prob_world = self.utils.em.get_sampling_prob(evidence)
             # Build the delp program for world
