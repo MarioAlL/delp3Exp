@@ -1,216 +1,150 @@
+import copy
+from utils import *
+from progress.counter import Counter
 from consultDeLP import *
-from bn import *
-from utilsExp import *
 import time
 import numpy as np
-
-status = {
-        "yes": 0,
-        "no": 0,
-        "undecided": 0,
-        "unknown": 0,
-        "pyes": 0.0,
-        "pno": 0.0,
-        "pundecided": 0.0,
-        "punknown": 0.0,
-        "time": 0.0
-        }
-
-class ProgramSampling:
-    def __init__(self, model_path, em_path, em_name, path_output, literals):
-        model = read_json_file(model_path)
-        self.model = model["af"] # List with all rules
-        self.em_var = model["em_var"]
-        self.am_rules = len(model["af"]) # Number of rules
-        self.n_programs = pow(2, self.am_rules) # Number possible programs
-        self.em = BayesNetwork(em_name, em_path)
-        self.em.load_bn()
-        self.result_path = path_output + os.path.basename(model_path[:-5])
-        self.wsUtils = WorldProgramUtils(self.am_rules, self.em_var)
-        self.results = {}
-        self.results["status"] = {lit: copy.copy(status) for lit in literals}
-        #self.know_evid_test = []
-        self.know_evid_test = {lit: {
-            'yes': [],
-            'no': [],
-            'unknown': [],
-            'undecided': []
-            } for lit in literals} 
-        self.sampled_evidence = 0
-    
-
-    def update_lit_status(self, status, prob_world):
-        for lit, status in status.items():
-            self.results["status"][lit][status["status"]] += 1
-            self.results["status"][lit]['p' + status["status"]] += prob_world[lit]
-            self.results["status"][lit]["time"] += status["time"]
+from sympy import *
+import re
 
 
-    def compute_prob_prog(self, evidences, status):
-        total_prob = {lit: 0.0 for lit in self.know_evid_test.keys()}
-        #total_prob = 0.0
-        for evidence in evidences:
-            for lit, state in status.items():
-                if evidence not in self.know_evid_test[lit][state["status"]]:
-                    prob = self.em.get_sampling_prob(evidence)
-                    total_prob[lit] += prob
-                    self.know_evid_test[lit][state["status"]].append(evidence)
-        return total_prob    
+def def_vars_solver(annots: dict) -> None:
+    """To define vars used in the model as symbols to use in the solver"""
+    aux = [re.findall(r'\d+', annot) for key, annot in annots.items()]
+    used_vars = [item for sublist in aux for item in sublist]
+    in_list = list(set(used_vars))
+    var(['x' + em_var for em_var in in_list])
 
 
-    def start_random_sampling(self, perc_samples):
-        # Sampling programs by total number of rules (all program rules)
-        inconsistent_programs = 0
-        lit_to_query = self.results["status"].keys()
-        samples = int((perc_samples * self.n_programs) / 100)
-        sampled_programs = np.random.choice(self.n_programs, samples, 
-                                                                replace=True)
-        unique_programs = list(set(sampled_programs))
-        initial_time = time.time()
-        for sample_program in unique_programs:
-            # Get program in list of 1 or 0 format
-            in_list_format = self.wsUtils.id_program_to_format(sample_program)
-            rule_annot_status = [[rule[0], rule[1], True] if 
-                                            in_list_format[index] == 1 else 
-                                [rule[0], rule[1], False] for index, rule in 
-                                                        enumerate(self.model)]
-            # Get the subprogram and its evidence
-            prog_evid = self.wsUtils.get_program_evidence(rule_annot_status)
-            # Controlar si es un programa correcto?
-            delp_program, evidence = prog_evid
-            if delp_program != -1:
-                prob_world = self.em.get_sampling_prob(evidence)
-                if prob_world != -1:
-                    # Possible program
-                    # Query to delp program (no existen programas repetidos)
-                    status = query_to_delp(delp_program, lit_to_query)
-                    self.update_lit_status(status, prob_world)
-                else:
-                    # Prob join = 0
-                    inconsistent_programs += 1
-            else:
-                # Inconsisten Program
-                inconsistent_programs += 1
-        print_ok(self.result_path + " complete")
-        execution_time = time.time() - initial_time
-        repetead_programs = samples - len(unique_programs)
-        self.results["data"] = {
-                "n_samples": samples,
-                "time": execution_time,
-                "repetead_delp": repetead_programs,
-                "inconsistent_delp": inconsistent_programs,
-                "unique_delp": self.wsUtils.unique_programs()
-                }
-        write_results(self.results, self.result_path)
-
-
-    def start_byWorld_prefilter_sampling(self, perc_samples):
-        # Sampling programs by em variables used in the programs annotations
-        # It's almost the same that sampling by worlds...
-        inconsistent_programs = 0
-        known_programs = 0
-        lit_to_query = self.results["status"].keys()
-        rule_annot_status = [[rule[0], rule[1], True] for rule in self.model]
-        initial_time = time.time()
-        sub_worlds_rep = self.wsUtils.get_sub_worlds(rule_annot_status, 
-                                                                perc_samples, 
-                                                                False)
-        sub_worlds_evidences = sub_worlds_rep[0]
-        print(self.result_path + ' --> ' + str(len(sub_worlds_evidences)))
-        for sub_world in sub_worlds_evidences:
-            prob_world = self.em.get_sampling_prob(sub_world[1])
-            # Build the delp program for world
-            delp_info = self.wsUtils.map_world_to_delp(self.model, sub_world[0])
-            delp_program, id_program = delp_info 
-            status = self.wsUtils.known_program(id_program)
-            if status == -1:
-                # New delp
-                status = query_to_delp(delp_program, lit_to_query)
-                self.wsUtils.save_program_status(id_program, status)
-            else:
-                # Known program
-                known_programs += 1
-            self.update_lit_status(status, prob_world)
-        print_ok(self.result_path + " complete")
-        execution_time = time.time() - initial_time
-        repeated_programs = sub_worlds_rep[1]
-        self.results["data"] = {
-                "n_samples": sub_worlds_rep[2],
-                "time": execution_time,
-                "repeated_delp": repeated_programs,
-                "unique_delp": self.wsUtils.unique_programs(),
-                "Errores": known_programs
-                }
-        write_results(self.results, self.result_path)
-
-
-    def start_random_program_sampling(self, perc_samples):
-        inconsistent_programs = 0
-        repeated_delp = 0
-        lit_to_query = self.results["status"].keys()
-        delp_in_bin = []
-        annotations = []
-        print(self.result_path, end=" ")
-        for index, rule_annot in enumerate(self.model):
-            value = is_always(rule_annot[1])
-            if value != 'x':
-                delp_in_bin.append(value)
-            else:
-                delp_in_bin.append(value)
-                annotations.append([index,rule_annot[1]])
-        initial_time = time.time()
-        samples_evid = self.wsUtils.get_sampled_annot(annotations, perc_samples, False)
-        for sample, evidence in samples_evid["samples_evid"].items():
-            for index, var_value in enumerate(sample):
-                delp_in_bin[annotations[index][0]] = int(var_value)
-            delp_program = self.wsUtils.map_bin_to_delp(self.model, delp_in_bin)
-            status = query_to_delp(delp_program, lit_to_query)
-            prob_program = self.compute_prob_prog(evidence, status)
-            self.update_lit_status(status, prob_program)
-        print("...complete")
-        execution_time = time.time() - initial_time
-        repeated_delp = samples_evid["repeated"]
-        inconsistent_programs = samples_evid["samples"] - repeated_delp - len(samples_evid["samples_evid"])
-        self.results["data"] = {
-                "n_samples": samples_evid["samples"],
-                "time": execution_time,
-                "repeated_delp": repeated_delp,
-                "inconsistent_delp": inconsistent_programs
-                }
-        write_results(self.results, self.result_path)
-
-def start_program_exact_sampling(self):
-    inconsistent_programs = 0
-    repeated_delp = 0
-    lit_to_query = self.filter_literals()
-    #lit_to_query = ['a_4', '~a_8', 'a_7']
-    delp_in_bin = []
-    annotations = []
-    print(self.result_path, end=" ")
-    for index, rule_annot in enumerate(self.model):
-        value = is_always(rule_annot[1])
-        if value != 'x':
-            delp_in_bin.append(value)
+def adapt_annots(annots: dict) -> dict:
+    """To adapt annotations into valid expressions to use in the solver"""
+    adapted_annots = {}
+    for index, annot in enumerate(annots):
+        if annots[annot].isdigit():
+            adapted_annots[index] = {
+                'True': '(x' + annots[annot] + ')',
+                'False': '~(x' + annots[annot] + ')'
+            }
         else:
-            delp_in_bin.append(value)
-            annotations.append([index,rule_annot[1]])
-    initial_time = time.time()
-    samples_evid = self.wsUtils.get_sampled_annot(annotations, 100, True)
-    for sample, evidence in samples_evid["samples_evid"].items():
-        for index, var_value in enumerate(sample):
-            delp_in_bin[annotations[index][0]] = int(var_value)
-        delp_program = self.wsUtils.map_bin_to_delp(self.model, delp_in_bin)
-        status = query_to_delp(delp_program, lit_to_query)
-        prob_program = self.compute_prob_prog(evidence, lit_to_query)
-        self.update_lit_status(status, prob_program)
-    print("...complete")
-    execution_time = time.time() - initial_time
-    repeated_delp = samples_evid["repeated"]
-    inconsistent_programs = samples_evid["samples"] - repeated_delp - len(samples_evid["samples_evid"])
-    self.results["data"] = {
-        "n_samples": samples_evid["samples"],
-        "time": execution_time,
-        "repeated_delp": repeated_delp,
-        "inconsistent_delp": inconsistent_programs
-    }
-    write_results(self.results, self.result_path)
+            op_repl = annots[annot].replace("and", "&").replace("or", "|").replace("not", "~")
+            in_list = op_repl.split(' ')
+            expr = ' '.join(['x' + element if element.isdigit() else element for element in in_list])
+            adapted_annots[index] = {
+                'True': '(' + expr + ')',
+                'False': '~(' + expr + ')'
+            }
+    return adapted_annots
+
+
+def to_evidence(model: json) -> json:
+    """To transform a model (values that satisfied a formula) in the format of evidences"""
+    evidence = {}
+    for k, v in model.items():
+        if v:
+            evidence[str(k)[1:]] = 1
+        else:
+            evidence[str(k)[1:]] = 0
+    return evidence
+
+
+class Programs:
+    def __init__(self, model_path: str, save_path: str):
+        # Utils to handle model
+        self.utils = Model(model_path, save_path)
+        # Define all variables in the programs to use in the solver
+        def_vars_solver(self.utils.annotations)
+        # Adapt annotations to use in the solver
+        self.adapted_annots = adapt_annots(self.utils.annotations)
+        # To save all results
+        self.results = {}
+        # To control repeated evidences
+        self.known_evidences = []
+
+    def start_sampling(self, percentile_samples: int, info: str) -> None:
+        """To run exact compute of the interval or select randomly a subset of all
+        possible programs (combining the values of its annotations) to perform an
+        approximation of the exact interval"""
+        n_programs = self.utils.get_n_programs()
+        if percentile_samples == 100:
+            # To compute the exact interval
+            lit_to_query = self.utils.search_lit_to_consult()
+            n_samples = n_programs
+            unique_programs = range(n_programs)
+            repeated_programs = 0   # ????
+        else:
+            lit_to_query = self.utils.get_interest_lit()
+            n_samples = int(get_percentile(percentile_samples, n_programs))
+            sampled_programs = np.random.choice(n_programs, n_samples, replace=True)
+            unique_programs = list(set(sampled_programs))
+            repeated_programs = n_samples - len(unique_programs)
+        prog_data = self.consult_programs(unique_programs, self.adapted_annots, lit_to_query)
+        execution_time, inconsistent_programs = prog_data
+        self.results['data'] = {
+            'n_samples': n_samples,
+            'time': execution_time,
+            'repeated_programs': repeated_programs,
+            'inconsistent_programs': inconsistent_programs
+        }
+        write_results(self.results, self.utils.save_path, info)
+
+    def consult_programs(self, unique_programs: list, adapted_annots: dict, lit_to_query: list) -> list:
+        """To iterate over sampled programs consulting for literals"""
+        rep_evid = 0 # To control...
+        self.results['status'] = {lit: copy.copy(STATUS) for lit in lit_to_query}
+        # To count the number of inconsistent programs sampled
+        inconsistent_programs = 0
+        counter = Counter('Processing programs: ', max=len(unique_programs))
+        initial_time = time.time()
+        for sampled_prog in unique_programs:
+            sampled_in_bin = self.utils.id_prog_to_bin(sampled_prog)
+            # Build the program from the sampled annotations
+            self.replace_in_program(sampled_in_bin)
+            # To create the expression that generate a sampled program
+            expression = ''
+            for index, value in enumerate(sampled_in_bin):
+                if value == 1:
+                    expression += adapted_annots[index]['True'] + ' & '
+                else:
+                    expression += adapted_annots[index]['False'] + ' & '
+            flag = False
+            program = self.utils.map_bin_to_prog(self.utils.prog_in_bin)
+            status = query_to_delp(program, lit_to_query)
+            prob = float(0.0)
+            models = satisfiable(eval(expression[:-3]), all_models=True)
+            for model in models:
+                if model:
+                    # The sampled program is consistent, is a valid program
+                    evidence = to_evidence(model)
+                    if evidence not in self.known_evidences:
+                        # Get probability of the new evidence
+                        prob += self.utils.em.get_sampling_prob(evidence)
+                        self.known_evidences.append(evidence)
+                    else:
+                        rep_evid += 1
+                else:
+                    # To sampled program is inconsistent
+                    inconsistent_programs += 1
+                    flag = True
+            if not flag:
+                self.update_results(status, prob)
+            counter.next()
+        counter.finish()
+        print(self.utils.model_path + " <<Complete>>")
+        execution_time = time.time() - initial_time
+        print("REPEATED EVIDENCES: ", rep_evid)
+        return [execution_time, inconsistent_programs]
+
+    def replace_in_program(self, sample: list) -> None:
+        """To replace annotations status in the program"""
+        for index, annot in enumerate(self.utils.annotations):
+            self.utils.prog_in_bin[annot] = int(sample[index])
+
+    def update_results(self, status: dict, prob: float) -> None:
+        """To update results"""
+        for literal, response in status.items():
+            # Update number of worlds
+            self.results['status'][literal][response['status']] += 1
+            # Update probabilities
+            self.results['status'][literal]['p' + response['status']] += prob
+            # Save time to compute the query in the world
+            self.results['status'][literal]['time'] += response['time']

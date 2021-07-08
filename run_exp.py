@@ -1,7 +1,6 @@
 import sys
 import csv
 import re
-from utilsExp import *
 from byWorldSampling import *
 from byProgramSampling import *
 import argparse
@@ -12,12 +11,11 @@ class Experiment:
     def __init__(self):
         pass
 
-    def exact_sampling(self, models, models_path, output, approach):
+    def exact_sampling(self, models, output, approach):
         """
         :params
             -models: list
-            -models_path: list
-            -output: list
+            -output: str
             -approach: str = ['worlds', 'programs']
         """
         if approach == 'worlds':
@@ -28,11 +26,10 @@ class Experiment:
         else:
             # By programs
             for model in models:
-                index = re.search(r'\d+', gfn(model)).group()
-                exact = Exact(model, models_path, 'BNdelp' + index, output)
-                exact.start_program_exact_sampling()
+                exact = Programs(model, output)
+                exact.start_sampling(100, '_e_p')
 
-    def by_world_sampling(self, models, models_path, output, samples, source):
+    def by_world_sampling(self, models, output, samples, source):
         """
         :params
             -models: list
@@ -52,7 +49,7 @@ class Experiment:
                 world_sampling = Worlds(model, output)
                 world_sampling.start_sampling(samples, 'random', '_s_r_w')
 
-    def by_delp_sampling(self, models, models_path, output, samples, source):
+    def by_delp_sampling(self, models, output, samples):
         """
         :params
             -models: list
@@ -61,24 +58,9 @@ class Experiment:
             -samples: int
             -amfilter: bool 
         """
-        if source == 'info':
-            # Filtering delp with em variables used
-            for model in models:
-                index = re.search(r'\d+', gfn(model)).group()
-                exact_values = read_json_file(gfnexact(model))
-                interest_lit = exact_values["status"].keys()
-                delp_sampling = ProgramSampling(model, models_path, gbn(index),
-                                                output, interest_lit)
-                delp_sampling.start_byWorld_prefilter_sampling(samples)
-        else:
-            # Random delp sample from all possible combinations of rules
-            for model in models:
-                index = re.search(r'\d+', gfn(model)).group()
-                exact_values = read_json_file(gfnexact(model))
-                interest_lit = exact_values["status"].keys()
-                delp_sampling = ProgramSampling(model, models_path, gbn(index),
-                                                output, interest_lit)
-                delp_sampling.start_random_program_sampling(samples)
+        for model in models:
+            program_sampling = Programs(model, output)
+            program_sampling.start_sampling(samples, '_s_p')
 
     def analyze_results(self, files_path):
         """
@@ -264,7 +246,7 @@ elif args.exact:
         run_parallel(models, exp, 'exact_sampling', (args.path, args.out,
                                                      args.approach))
     else:
-        exp.exact_sampling(models, args.path, args.out, args.approach)
+        exp.exact_sampling(models, args.out, args.approach)
 # To run sampling
 elif args.sampling:
     if args.parallel:
@@ -285,5 +267,4 @@ elif args.sampling:
                                   args.sampling)
         else:
             # By delp in sequential
-            exp.by_delp_sampling(models, args.path, args.out, args.size,
-                                 args.sampling)
+            exp.by_delp_sampling(models, args.out, args.size)
