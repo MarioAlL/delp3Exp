@@ -1,7 +1,8 @@
-import copy
 import re
 import json
 import os
+from collections import OrderedDict
+
 import numpy as np
 from bn import BayesNetwork
 
@@ -141,6 +142,25 @@ def is_trivial_annot(annot: str) -> bool:
         return False
 
 
+def get_prog_info(model: list) -> list:
+    """To return program info:
+    - Number of possible programs
+    - A dictionary that indicate the positions of annotations in the program"""
+    annotations = OrderedDict()
+    program_in_bin = []
+    for index, annot in enumerate(model):
+        if not is_trivial_annot(annot[1]):
+            annotations[index] = annot[1]
+            program_in_bin.append('x')
+        else:
+            if annot[1] == 'True' or annot[1] == '':
+                program_in_bin.append(1)
+            else:
+                program_in_bin.append(0)
+    n_annots = len(annotations)
+    return [n_annots, annotations, program_in_bin]
+
+
 class Model:
     """Class for model handling"""
 
@@ -153,6 +173,8 @@ class Model:
         self.em_vars = model_data['em_var']
         # The number of rules in the model
         self.am_rules_dim = len(self.model)
+        # Info of the program in the model
+        self.n_annots, self.annotations, self.prog_in_bin = get_prog_info(self.model)
         # All literals used in the AM model
         self.literals_in_model = model_data['literals']
         # To load the Bayesian Network of the model
@@ -160,17 +182,21 @@ class Model:
         self.em = BayesNetwork(gbn(index_model), gdn(model_path))
         self.em.load_bn()
         self.save_path = save_path + gfn(model_path)[:-5]
-        self.to_bin_delp_format = '{0:0' + str(self.am_rules_dim) + 'b}'
+        self.to_bin_prog_format = '{0:0' + str(self.n_annots) + 'b}'
         self.to_bin_world_format = '{0:0' + str(self.em_vars) + 'b}'
 
     def get_n_worlds(self) -> int:
         """Return the total number of possible worlds"""
         return pow(2, self.em_vars)
 
-    def id_delp_to_bin(self, id_delp: int) -> list:
-        """To convert the id of a delp into a binary array"""
-        delp = [int(digit) for digit in list(self.to_bin_delp_format.format(id_delp))]
-        return delp
+    def get_n_programs(self) -> int:
+        """Return the total number of possible programs"""
+        return pow(2, self.n_annots)
+
+    def id_prog_to_bin(self, id_prog: int) -> list:
+        """To convert the id of a prog into a binary array"""
+        prog = [int(digit) for digit in list(self.to_bin_prog_format.format(id_prog))]
+        return prog
 
     def id_world_to_bin(self, id_world: int) -> list:
         """To convert the id of a world into a binary array and it's evidence"""
@@ -178,28 +204,28 @@ class Model:
         evidence = {i: world[i] for i in range(len(world))}
         return [world, evidence]
 
-    def map_bin_to_delp(self, bin_array: list) -> str:
-        """Map a binary array into a delp"""
-        delp = ''
+    def map_bin_to_prog(self, bin_array: list) -> str:
+        """Map a binary array into a prog"""
+        prog = ''
         for index, value in enumerate(bin_array):
             if value == 1:
                 # Add the rule
-                delp += self.model[index][0]
-        return delp
+                prog += self.model[index][0]
+        return prog
 
-    def map_world_to_delp(self, world: list) -> list:
-        """Map a world (in binary representation) into a delp"""
-        delp = ''
-        delp_in_bin = '0b'
+    def map_world_to_prog(self, world: list) -> list:
+        """Map a world (in binary representation) into a prog"""
+        prog = ''
+        prog_in_bin = '0b'
         for rule, annot in self.model:
             check_annot = eval_annot(annot, world)
             if check_annot:
-                delp += rule
-                delp_in_bin += '1'
+                prog += rule
+                prog_in_bin += '1'
             else:
-                delp_in_bin += '0'
-        id_delp = bin_to_int(delp_in_bin)
-        return [delp, id_delp]
+                prog_in_bin += '0'
+        id_prog = bin_to_int(prog_in_bin)
+        return [prog, id_prog]
 
     def get_interest_lit(self) -> list:
         """Return the literals with interest intervals of the model
@@ -219,8 +245,6 @@ class Model:
         literals.append(np.random.choice(self.literals_in_model[str(from_levels)], 1)[0])
         # Complex one
         literals.append(np.random.choice(self.literals_in_model[levels[-1]], 1)[0])
-        # To test
-        literals = ['~d_12', 'a_7', '~a_7']
         return literals
 
 
