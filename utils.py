@@ -7,7 +7,7 @@ import numpy as np
 from bn import BayesNetwork
 
 """Generals Names and Values"""
-BN_NAMES = "BNdelp"
+BN_NAMES = "BN"
 WIDTH_OF_INTEREST = 0.5
 STATUS = {
     "yes": 0,
@@ -56,7 +56,13 @@ def gfnexact(path: str) -> str:
     """Get the file name that contains the exact values of the model specified in path"""
     dir_name = os.path.dirname(path)
     model_name = gfn(path)[:-5]
-    return dir_name + '/par/' + model_name + 'output.json'
+    return dir_name + '/exact/' + model_name + '_e_w.json'
+
+
+def gfnexact_from_sampling(path: str) -> str:
+    dir_name = os.path.dirname(os.path.dirname(os.path.dirname(path)))
+    model_name = gfn(path)[:-9]
+    return dir_name + '/exact/' + model_name + '_e_w.json'
 
 
 def to_decimal_format(number: float, decimals: int) -> str:

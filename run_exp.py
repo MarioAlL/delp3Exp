@@ -43,12 +43,12 @@ class Experiment:
             # Sampling from probability distribution
             for model in models:
                 world_sampling = Worlds(model, output)
-                world_sampling.start_sampling(samples, 'distribution', '_s_d_w')
+                world_sampling.start_sampling(samples, 'distribution', '_s_w')
         else:
             # Random sampling
             for model in models:
                 world_sampling = Worlds(model, output)
-                world_sampling.start_sampling(samples, 'random', '_s_r_w')
+                world_sampling.start_sampling(samples, 'random', '_s_w')
 
     def by_delp_sampling(self, models, output, samples):
         """
@@ -68,7 +68,7 @@ class Experiment:
         :params
             -files_path: str
         """
-        results = glob.glob(files_path + 'modeldelp*output.json')
+        results = glob.glob(files_path + '*model*.json')
         total_time = 0.0
         interest = 0
         for result in results:
@@ -77,16 +77,16 @@ class Experiment:
             for key, val in data["status"].items():
                 if "flag" in val:
                     interest += 1
-        print_ok("Total time: " + str(total_time))
-        print_ok("Average: " + str(total_time / len(results)))
-        print_ok("Interest: " + str(interest))
+        print("Total time: " + str(total_time))
+        print("Average: " + str(total_time / len(results)))
+        print("Interest: " + str(interest))
 
     def write_exact_csv(self, results_path):
         """
         :params
             -results_path: str
         """
-        results = glob.glob(results_path + 'modeldelp*output.json')
+        results = glob.glob(results_path + '*model_e_*.json')
         fieldnames = ['Prog', 'Lit', 'Exact', 'Time']
         rows = []
         for result in results:
@@ -94,7 +94,7 @@ class Experiment:
             data = read_json_file(result)
             for lit, status in data["status"].items():
                 if "flag" in status:
-                    interval = '[' + gf4(status["l"]) + '-' + gf4(status["u"]) + ']'
+                    interval = '[' + to_decimal_format(status["l"], 4) + '-' + to_decimal_format(status["u"], 4) + ']'
                     rows.append(
                         {
                             'Prog': int(n_program),
@@ -111,18 +111,21 @@ class Experiment:
             writer.writerows(ordered_rows)
 
     def write_sampling_csv(self, results_path: str) -> None:
-        results = glob.glob(results_path + 'modeldelp*output.json')
+        metrics = []
+        time = []
+        mass = []
+        results = glob.glob(results_path + '*model_s_*.json')
         fieldnames = ['Prog', 'Lit', 'Intervalo', 'Metric', 'Time', 'Mass']
         rows = []
         for result in results:
             program_name = gfn(result)
             n_program = re.search(r'\d+', program_name).group()
             data_sampling = read_json_file(result)
-            exact = read_json_file(gfnexactSam(result) + program_name)
+            exact = read_json_file(gfnexact_from_sampling(result))
             for lit, lit_e in exact["status"].items():
                 if "flag" in lit_e:
                     lit_s = data_sampling["status"][lit]
-                    intervalo = '[' + gf4(lit_s["l"]) + '-' + gf4(lit_s["u"]) + ']'
+                    intervalo = '[' + to_decimal_format(lit_s["l"], 4) + '-' + to_decimal_format(lit_s["u"], 4) + ']'
                     metric = compute_metric([lit_s["l"], lit_s["u"]],
                                             [lit_e["l"], lit_e["u"]])
                     mass = (lit_s["pyes"] + lit_s["pno"] +
@@ -269,7 +272,7 @@ elif args.sampling:
     else:
         if args.approach == 'worlds':
             # By worlds in sequential
-            exp.by_world_sampling(models, args.path, args.out, args.size,
+            exp.by_world_sampling(models, args.out, args.size,
                                   args.sampling)
         else:
             # By delp in sequential

@@ -13,7 +13,6 @@ def def_vars_solver(annots: dict) -> None:
     aux = [re.findall(r'\d+', annot) for key, annot in annots.items()]
     used_vars = [item for sublist in aux for item in sublist]
     in_list = list(set(used_vars))
-    print(len(in_list))
     var(['x' + em_var for em_var in in_list])
 
 
