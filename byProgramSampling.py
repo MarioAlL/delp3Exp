@@ -13,6 +13,7 @@ def def_vars_solver(annots: dict) -> None:
     aux = [re.findall(r'\d+', annot) for key, annot in annots.items()]
     used_vars = [item for sublist in aux for item in sublist]
     in_list = list(set(used_vars))
+    print(len(in_list))
     var(['x' + em_var for em_var in in_list])
 
 
@@ -83,17 +84,17 @@ class Programs:
             'n_samples': n_samples,
             'time': execution_time,
             'repeated_programs': repeated_programs,
-            'inconsistent_programs': inconsistent_programs
+            'inconsistent_programs': inconsistent_programs,
+            'worlds_consulted': len(self.known_evidences)
         }
         write_results(self.results, self.utils.save_path, info)
 
     def consult_programs(self, unique_programs: list, adapted_annots: dict, lit_to_query: list) -> list:
         """To iterate over sampled programs consulting for literals"""
-        rep_evid = 0 # To control...
         self.results['status'] = {lit: copy.copy(STATUS) for lit in lit_to_query}
         # To count the number of inconsistent programs sampled
         inconsistent_programs = 0
-        counter = Counter('Processing programs: ', max=len(unique_programs))
+        counter = Counter('Processing programs (%d): ' % (len(unique_programs)), max=len(unique_programs))
         initial_time = time.time()
         for sampled_prog in unique_programs:
             sampled_in_bin = self.utils.id_prog_to_bin(sampled_prog)
@@ -119,8 +120,6 @@ class Programs:
                         # Get probability of the new evidence
                         prob += self.utils.em.get_sampling_prob(evidence)
                         self.known_evidences.append(evidence)
-                    else:
-                        rep_evid += 1
                 else:
                     # To sampled program is inconsistent
                     inconsistent_programs += 1
@@ -131,7 +130,6 @@ class Programs:
         counter.finish()
         print(self.utils.model_path + " <<Complete>>")
         execution_time = time.time() - initial_time
-        print("REPEATED EVIDENCES: ", rep_evid)
         return [execution_time, inconsistent_programs]
 
     def replace_in_program(self, sample: list) -> None:

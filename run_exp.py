@@ -1,5 +1,6 @@
 import sys
 import csv
+import glob
 import re
 from byWorldSampling import *
 from byProgramSampling import *
@@ -205,6 +206,12 @@ parser.add_argument('-parallel',
                     help="(bool) To run in parallel",
                     action="store_true",
                     dest="parallel")
+
+parser.add_argument('-c',
+                    help="Number of model to sample",
+                    action='store',
+                    dest='limit',
+                    required=True)
 ## For analyze results
 parser.add_argument('-analyze',
                     help="(bool) To analyze the results",
@@ -229,8 +236,7 @@ exp = Experiment()
 if args.one_path:
     models = [args.one_path]
 else:
-    models = glob.glob(args.path + 'modeldelp*.json')
-
+    models = sorted(glob.glob(args.path + '*model.json'), key=natural_key)[:int(args.limit)]
 # To generate the csv files:
 if args.tocsv:
     if args.tocsv == 'exact':

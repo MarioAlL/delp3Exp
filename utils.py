@@ -38,6 +38,10 @@ def read_json_file(path_file: str) -> json:
         exit()
 
 
+def natural_key(string_):
+    return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', string_)]
+
+
 def gfn(path: str) -> str:
     """Get the file name of a model specified in path"""
     return os.path.basename(path)

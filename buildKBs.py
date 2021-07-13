@@ -1,11 +1,11 @@
 import sys
 sys.path.insert(1, './Utils/')
 sys.path.insert(2, './EM/BNs/')
-from utilsExp import *
 import argparse
 import numpy as np
 from bn import *
 import pyAgrum as gum
+from utils import *
 
 
 class CreateDeLP3E: 
@@ -116,8 +116,8 @@ class CreateDeLP3E:
 
     def create(self) -> None:
         created_models = 0
-        print_ok("Building models...")
-        for path_delp in self.delp_programs:
+        print("Building models...")
+        for p_index, path_delp in enumerate(self.delp_programs):
             delp_program = read_json_file(path_delp)
             delp_rules = [rule[:-1] for rule in delp_program['delp']]
             rule_to_annot = self.filter_rules(delp_rules)
@@ -132,10 +132,10 @@ class CreateDeLP3E:
             # Create the Environmental Model
             if self.arcs != 0:
                 # Create the em with a Bayesian Network
-                self.build_BN(gfn(path_delp)[:-5])
+                self.build_BN(gfn(path_delp)[:-9])
             else:
                 # Create the em with a Tuple-Independence Model
-                self.build_BN(gfn(path_delp)[:-5])
+                self.build_BN(gfn(path_delp)[:-9])
                 pass
 
             # To save the delp3e model
@@ -147,7 +147,7 @@ class CreateDeLP3E:
                     }
             
             # Save the delp3e file
-            with open(self.save + 'model' + gfn(path_delp)[:-5] + '.json','w') as outfile:
+            with open(self.save + str(p_index) + 'model' + '.json','w') as outfile:
                 json.dump(delp3e_model, outfile, indent = 4)
             created_models += 1   
-        print_ok("Models created: " + str(created_models))
+        print("Models created: " + str(created_models))
