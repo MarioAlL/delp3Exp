@@ -1,5 +1,6 @@
 import sys
 import csv
+import glob
 import re
 from byWorldSampling import *
 from byProgramSampling import *
@@ -42,12 +43,12 @@ class Experiment:
             # Sampling from probability distribution
             for model in models:
                 world_sampling = Worlds(model, output)
-                world_sampling.start_sampling(samples, 'distribution', '_s_d_w')
+                world_sampling.start_sampling(samples, 'distribution', '_s_w')
         else:
             # Random sampling
             for model in models:
                 world_sampling = Worlds(model, output)
-                world_sampling.start_sampling(samples, 'random', '_s_r_w')
+                world_sampling.start_sampling(samples, 'random', '_s_w')
 
     def by_delp_sampling(self, models, output, samples):
         """
@@ -67,7 +68,7 @@ class Experiment:
         :params
             -files_path: str
         """
-        results = glob.glob(files_path + 'modeldelp*output.json')
+        results = glob.glob(files_path + '*model*.json')
         total_time = 0.0
         interest = 0
         for result in results:
@@ -76,16 +77,18 @@ class Experiment:
             for key, val in data["status"].items():
                 if "flag" in val:
                     interest += 1
-        print_ok("Total time: " + str(total_time))
-        print_ok("Average: " + str(total_time / len(results)))
-        print_ok("Interest: " + str(interest))
+        print("Total time: " + str(total_time))
+        print("Average: " + str(total_time / len(results)))
+        print("Interest: " + str(interest))
 
     def write_exact_csv(self, results_path):
         """
         :params
             -results_path: str
         """
-        results = glob.glob(results_path + 'modeldelp*output.json')
+        times = []
+        unique_programs = []
+        results = glob.glob(results_path + '*model_e_*.json')
         fieldnames = ['Prog', 'Lit', 'Exact', 'Time']
         rows = []
         for result in results:
@@ -93,7 +96,7 @@ class Experiment:
             data = read_json_file(result)
             for lit, status in data["status"].items():
                 if "flag" in status:
-                    interval = '[' + gf4(status["l"]) + '-' + gf4(status["u"]) + ']'
+                    interval = '[' + to_decimal_format(status["l"], 4) + '-' + to_decimal_format(status["u"], 4) + ']'
                     rows.append(
                         {
                             'Prog': int(n_program),
@@ -102,26 +105,40 @@ class Experiment:
                             'Time': format(status["time"], '.2f')
                         }
                     )
+            times.append(data['data']['time'])
+            unique_programs.append(data['data']['unique_progs'])
         ordered_rows = sorted(rows, key=lambda k: k['Prog'])
         with open(results_path + 'csvE_Results.csv', 'w', encoding='utf-8',
                   newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(ordered_rows)
+        times_mean, times_sd = np.mean(times), np.std(times)
+        unique_programs_mean, unique_programs_sd = np.mean(unique_programs), np.std(unique_programs)
+        with open(results_path + 'values_e.json', 'w') as output:
+            json.dump({'time_mean': times_mean,
+                        'time_sd': times_sd,
+                        'unique_programs_mean': unique_programs_mean,
+                        'unique_programs_sd': unique_programs_sd}, output, indent=4)
 
     def write_sampling_csv(self, results_path: str) -> None:
-        results = glob.glob(results_path + 'modeldelp*output.json')
+        metrics = []
+        time = []
+        masses = []
+        n_samples = []
+        worlds_consulted = []
+        results = glob.glob(results_path + '*model_s_*.json')
         fieldnames = ['Prog', 'Lit', 'Intervalo', 'Metric', 'Time', 'Mass']
         rows = []
         for result in results:
             program_name = gfn(result)
             n_program = re.search(r'\d+', program_name).group()
             data_sampling = read_json_file(result)
-            exact = read_json_file(gfnexactSam(result) + program_name)
+            exact = read_json_file(gfnexact_from_sampling(result))
             for lit, lit_e in exact["status"].items():
                 if "flag" in lit_e:
                     lit_s = data_sampling["status"][lit]
-                    intervalo = '[' + gf4(lit_s["l"]) + '-' + gf4(lit_s["u"]) + ']'
+                    intervalo = '[' + to_decimal_format(lit_s["l"], 4) + '-' + to_decimal_format(lit_s["u"], 4) + ']'
                     metric = compute_metric([lit_s["l"], lit_s["u"]],
                                             [lit_e["l"], lit_e["u"]])
                     mass = (lit_s["pyes"] + lit_s["pno"] +
@@ -136,12 +153,41 @@ class Experiment:
                             'Mass': format(mass, '.4f')
                         }
                     )
+                    metrics.append(float(metric))
+                    masses.append(mass)
+            time.append(data_sampling['data']['time'])
+            n_samples.append(data_sampling['data']['n_samples'])
+            if '_s_p' in program_name:
+                # is a program based sample
+                worlds_consulted.append(data_sampling['data']['worlds_consulted'])
+            else:
+                # is a world based sample
+                worlds_consulted.append(data_sampling['data']['n_samples'])
         ordered_rows = sorted(rows, key=lambda k: k['Prog'])
         with open(results_path + 'csvS_Results.csv', 'w', encoding='utf-8',
                   newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(ordered_rows)
+        metric_mean, metric_sd = np.mean(metrics), np.std(metrics)
+        time_mean, time_sd = np.mean(time), np.std(time)
+        masses_mean, masses_sd = np.mean(masses), np.std(masses)
+        n_samples_mean, n_samples_sd = np.mean(n_samples), np.std(n_samples)
+        worlds_consulted_mean, worlds_consulted_sd = np.mean(worlds_consulted), np.std(worlds_consulted)
+        
+        with open(results_path + 'values_s.json', 'w') as output:
+            json.dump({
+                'metric_mean': metric_mean,
+                'metric_sd': metric_sd,
+                'time_mean': time_mean,
+                'time_sd': time_sd,
+                'mass_mean': masses_mean,
+                'mass_sd': masses_sd,
+                'n_samples_mean': n_samples_mean,
+                'n_samples_sd': n_samples_sd,
+                'worlds_consulted_mean': worlds_consulted_mean,
+                'worlds_consulted_sd': worlds_consulted_sd
+                }, output, indent=4)
 
 
 def run_parallel(models, obj_exp, func, params):
@@ -205,6 +251,12 @@ parser.add_argument('-parallel',
                     help="(bool) To run in parallel",
                     action="store_true",
                     dest="parallel")
+
+parser.add_argument('-c',
+                    help="Number of model to sample",
+                    action='store',
+                    dest='limit',
+                    required=True)
 ## For analyze results
 parser.add_argument('-analyze',
                     help="(bool) To analyze the results",
@@ -229,8 +281,7 @@ exp = Experiment()
 if args.one_path:
     models = [args.one_path]
 else:
-    models = glob.glob(args.path + 'modeldelp*.json')
-
+    models = sorted(glob.glob(args.path + '*model.json'), key=natural_key)[:int(args.limit)]
 # To generate the csv files:
 if args.tocsv:
     if args.tocsv == 'exact':
@@ -263,7 +314,7 @@ elif args.sampling:
     else:
         if args.approach == 'worlds':
             # By worlds in sequential
-            exp.by_world_sampling(models, args.path, args.out, args.size,
+            exp.by_world_sampling(models, args.out, args.size,
                                   args.sampling)
         else:
             # By delp in sequential

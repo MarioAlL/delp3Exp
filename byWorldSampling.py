@@ -70,13 +70,22 @@ class Worlds:
                 # New program
                 status = query_to_delp(program, lit_to_query)
                 self.known_progs.save_sample(id_program, status)
-            for literal, response in status.items():
-                # Update number of worlds
-                self.results['status'][literal][response['status']] += 1
-                # Update probabilities
-                self.results['status'][literal]['p' + response['status']] += prob_world
-                # Save time to compute the query in the world
-                self.results['status'][literal]['time'] += response['time']
+                for literal, response in status.items():
+                    # Update number of worlds
+                    self.results['status'][literal][response['status']] += 1
+                    # Update probabilities
+                    self.results['status'][literal]['p' + response['status']] += prob_world
+                    # Save time to compute the query in the world 
+                    self.results['status'][literal]['time'] += response['time']
+            else:
+                # Known program
+                for literal, response in status.items():
+                    # Update number of worlds
+                    self.results['status'][literal][response['status']] += 1
+                    # Update probabilities
+                    self.results['status'][literal]['p' + response['status']] += prob_world
+                    # Save time to compute the query in the world 
+                    self.results['status'][literal]['time'] += 0 
             counter.next()
         counter.finish()
         print(self.utils.model_path + " <<Complete>>")

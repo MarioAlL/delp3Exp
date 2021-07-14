@@ -1,6 +1,8 @@
 import argparse
 from buildKBs import *
-from utilsExp import *
+import glob
+from utils import *
+
 
 class Datasets:
     
@@ -75,13 +77,17 @@ class Datasets:
         creator.create()
 
 
+def get_all_programs(path: str) -> list:
+    return sorted(glob.glob(path + '*delp.json'), key=natural_key)
+
+
 parser = argparse.ArgumentParser(description='Script to generate annotations \
                                                 randomly for a del3e program')
 parser.add_argument('-am',
                     action='store',
                     help="The path of the dataset with delp programs (json)",
                     dest="am",
-                    type=get_all_delp,
+                    type=get_all_programs,
                     required=True)
 parser.add_argument('-af',
                     help='Annotation Function setting',
