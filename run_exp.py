@@ -86,6 +86,8 @@ class Experiment:
         :params
             -results_path: str
         """
+        times = []
+        unique_programs = []
         results = glob.glob(results_path + '*model_e_*.json')
         fieldnames = ['Prog', 'Lit', 'Exact', 'Time']
         rows = []
@@ -103,17 +105,29 @@ class Experiment:
                             'Time': format(status["time"], '.2f')
                         }
                     )
+            times.append(data['data']['time'])
+            unique_programs.append(data['data']['unique_progs'])
         ordered_rows = sorted(rows, key=lambda k: k['Prog'])
         with open(results_path + 'csvE_Results.csv', 'w', encoding='utf-8',
                   newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(ordered_rows)
+        times_mean, times_sd = np.mean(times), np.std(times)
+        unique_programs_mean, unique_programs_sd = np.mean(unique_programs), np.std(unique_programs)
+        with open(results_path + 'values_e.json', 'w') as output:
+            json.dump({'time_mean': times_mean,
+                        'time_sd': times_sd,
+                        'unique_programs_mean': unique_programs_mean,
+                        'unique_programs_sd': unique_programs_sd}, output, indent=4)
+
 
     def write_sampling_csv(self, results_path: str) -> None:
         metrics = []
         time = []
-        mass = []
+        masses = []
+        n_samples = []
+        worlds_consulted = []
         results = glob.glob(results_path + '*model_s_*.json')
         fieldnames = ['Prog', 'Lit', 'Intervalo', 'Metric', 'Time', 'Mass']
         rows = []
@@ -140,12 +154,42 @@ class Experiment:
                             'Mass': format(mass, '.4f')
                         }
                     )
+                    metrics.append(float(metric))
+                    masses.append(mass)
+            time.append(data_sampling['data']['time'])
+            n_samples.append(data_sampling['data']['n_samples'])
+            if '_s_p' in program_name:
+                # is a program based sample
+                worlds_consulted.append(data_sampling['data']['worlds_consulted'])
+            else:
+                # is a world based sample
+                worlds_consulted.append(data_sampling['data']['n_samples'])
+
         ordered_rows = sorted(rows, key=lambda k: k['Prog'])
         with open(results_path + 'csvS_Results.csv', 'w', encoding='utf-8',
                   newline='') as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(ordered_rows)
+        metric_mean, metric_sd = np.mean(metrics), np.std(metrics)
+        time_mean, time_sd = np.mean(time), np.std(time)
+        masses_mean, masses_sd = np.mean(masses), np.std(masses)
+        n_samples_mean, n_samples_sd = np.mean(n_samples), np.std(n_samples)
+        worlds_consulted_mean, worlds_consulted_sd = np.mean(worlds_consulted), np.std(worlds_consulted)
+        
+        with open(results_path + 'values_s.json', 'w') as output:
+            json.dump({
+                'metric_mean': metric_mean,
+                'metric_sd': metric_sd,
+                'time_mean': time_mean,
+                'time_sd': time_sd,
+                'mass_mean': masses_mean,
+                'mass_sd': masses_sd,
+                'n_samples_mean': n_samples_mean,
+                'n_samples_sd': n_samples_sd,
+                'worlds_consulted_mean': worlds_consulted_mean,
+                'worlds_consulted_sd': worlds_consulted_sd
+                }, output, indent=4)
 
 
 def run_parallel(models, obj_exp, func, params):
