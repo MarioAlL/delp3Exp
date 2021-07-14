@@ -121,7 +121,6 @@ class Experiment:
                         'unique_programs_mean': unique_programs_mean,
                         'unique_programs_sd': unique_programs_sd}, output, indent=4)
 
-
     def write_sampling_csv(self, results_path: str) -> None:
         metrics = []
         time = []
@@ -164,7 +163,6 @@ class Experiment:
             else:
                 # is a world based sample
                 worlds_consulted.append(data_sampling['data']['n_samples'])
-
         ordered_rows = sorted(rows, key=lambda k: k['Prog'])
         with open(results_path + 'csvS_Results.csv', 'w', encoding='utf-8',
                   newline='') as f:
