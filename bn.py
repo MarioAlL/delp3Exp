@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import itertools
 import math
 import numpy as np
-
+import time
 
 class BayesNetwork:
 
@@ -156,11 +156,12 @@ class BayesNetwork:
             return 0.00 
 
     def gen_samples(self, samples):
+        time_as_key = time.strftime("%Y%m%d-%H%M%S")
         self.generator.drawSamples(samples)
-        self.generator.toCSV(self.path + 'samples.csv')
+        self.generator.toCSV(self.path + 'samples' + time_as_key + '.csv')
         samplesToReturn = []
         # Load the csv and return samples as list
-        with open(self.path + 'samples.csv', 'r') as read_obj:
+        with open(self.path + 'samples' + time_as_key + '.csv', 'r') as read_obj:
             csv_dict_reader = DictReader(read_obj)
             for row in csv_dict_reader:
                 asdict = dict(row)
