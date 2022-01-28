@@ -162,7 +162,9 @@ class Experiment:
                 worlds_consulted.append(data_sampling['data']['worlds_consulted'])
             else:
                 # is a world based sample
-                worlds_consulted.append(data_sampling['data']['n_samples'])
+                # this is the last change
+                worlds_consulted.append(data_sampling['data']['n_samples'] - data_sampling['data']['repeated_worlds'])
+
         ordered_rows = sorted(rows, key=lambda k: k['Prog'])
         with open(results_path + 'csvS_Results.csv', 'w', encoding='utf-8',
                   newline='') as f:
