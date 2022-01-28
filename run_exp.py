@@ -163,6 +163,7 @@ class Experiment:
                 worlds_consulted.append(data_sampling['data']['worlds_consulted'])
             else:
                 # is a world based sample
+                # this is the last change
                 worlds_consulted.append(data_sampling['data']['n_samples'] - data_sampling['data']['repeated_worlds'])
 
         ordered_rows = sorted(rows, key=lambda k: k['Prog'])
