@@ -121,7 +121,6 @@ class Experiment:
                         'unique_programs_mean': unique_programs_mean,
                         'unique_programs_sd': unique_programs_sd}, output, indent=4)
 
-
     def write_sampling_csv(self, results_path: str) -> None:
         metrics = []
         time = []
