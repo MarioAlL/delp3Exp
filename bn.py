@@ -37,7 +37,7 @@ class BayesNetwork:
             # For generate all CPTs
             bn.generateCPTs()
         # To graph and save BN
-        gumGraph.dotize(bn, self.path + self.name, 'pdf')
+        #gumGraph.dotize(bn, self.path + self.name, 'pdf')
         gum.saveBN(bn, self.path + self.name + '.bifxml')
         self.generator = gum.BNDatabaseGenerator(bn)
         self.ie = gum.LazyPropagation(bn)

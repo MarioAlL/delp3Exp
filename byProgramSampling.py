@@ -74,6 +74,9 @@ class Programs:
         else:
             lit_to_query = self.utils.get_interest_lit()
             n_samples = int(get_percentile(percentile_samples, n_programs))
+            print(n_programs)
+            print(n_samples)
+            exit()
             sampled_programs = np.random.choice(n_programs, n_samples, replace=True)
             unique_programs = list(set(sampled_programs))
             repeated_programs = n_samples - len(unique_programs)

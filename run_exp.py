@@ -162,7 +162,7 @@ class Experiment:
                 worlds_consulted.append(data_sampling['data']['worlds_consulted'])
             else:
                 # is a world based sample
-                worlds_consulted.append(data_sampling['data']['n_samples'])
+                worlds_consulted.append(data_sampling['data']['n_samples'] - data_sampling['data']['repeated_worlds'])
         ordered_rows = sorted(rows, key=lambda k: k['Prog'])
         with open(results_path + 'csvS_Results.csv', 'w', encoding='utf-8',
                   newline='') as f:
@@ -199,7 +199,7 @@ def run_parallel(models, obj_exp, func, params):
     init_time = time.time()
     p1 = Process(target=getattr(obj_exp, str(func)), args=(models_1,) + params)
     p2 = Process(target=getattr(obj_exp, str(func)), args=(models_2,) + params)
-    print_info("Starting in parallel...")
+    print("Starting in parallel...")
     p1.start()
     p2.start()
     p1.join()
