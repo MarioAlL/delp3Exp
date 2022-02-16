@@ -301,7 +301,7 @@ elif args.analyze:
 # To run exact:
 elif args.exact:
     if args.parallel:
-        run_parallel(models, exp, 'exact_sampling', (args.path, args.out,
+        run_parallel(models, exp, 'exact_sampling', (args.out,
                                                      args.approach))
     else:
         exp.exact_sampling(models, args.out, args.approach)
