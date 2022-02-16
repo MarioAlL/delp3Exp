@@ -78,7 +78,8 @@ class Datasets:
 
 
 def get_all_programs(path: str) -> list:
-    return sorted(glob.glob(path + '*delp.json'), key=natural_key)
+    # Make the limit of files to return an option (input argument)
+    return sorted(glob.glob(path + '*delp.json'), key=natural_key)[:300]
 
 
 parser = argparse.ArgumentParser(description='Script to generate annotations \
