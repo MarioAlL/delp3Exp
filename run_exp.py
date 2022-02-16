@@ -253,10 +253,16 @@ parser.add_argument('-parallel',
                     action="store_true",
                     dest="parallel")
 
-parser.add_argument('-c',
-                    help="Number of model to sample",
+parser.add_argument('-i',
+                    help="Index of model where start",
                     action='store',
-                    dest='limit',
+                    dest='i',
+                    required=True)
+
+parser.add_argument('-j',
+                    help="Index of model where stop",
+                    action='store',
+                    dest='j',
                     required=True)
 ## For analyze results
 parser.add_argument('-analyze',
@@ -282,7 +288,7 @@ exp = Experiment()
 if args.one_path:
     models = [args.one_path]
 else:
-    models = sorted(glob.glob(args.path + '*model.json'), key=natural_key)[:int(args.limit)]
+    models = sorted(glob.glob(args.path + '*model.json'), key=natural_key)[int(args.i):int(args.j)]
 # To generate the csv files:
 if args.tocsv:
     if args.tocsv == 'exact':
