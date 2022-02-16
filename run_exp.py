@@ -77,6 +77,7 @@ class Experiment:
             for key, val in data["status"].items():
                 if "flag" in val:
                     interest += 1
+        print("Number of files: " + str(len(results)))
         print("Total time: " + str(total_time))
         print("Average: " + str(total_time / len(results)))
         print("Interest: " + str(interest))
