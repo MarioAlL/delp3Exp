@@ -89,7 +89,9 @@ class Experiment:
         """
         times = []
         unique_programs = []
+        n_worlds = 0
         results = glob.glob(results_path + '*model_e_*.json')
+        #results = glob.glob(results_path + 'model*.json')
         fieldnames = ['Prog', 'Lit', 'Exact', 'Time']
         rows = []
         for result in results:
@@ -108,6 +110,7 @@ class Experiment:
                     )
             times.append(data['data']['time'])
             unique_programs.append(data['data']['unique_progs'])
+            n_worlds = data['data']['n_samples']
         ordered_rows = sorted(rows, key=lambda k: k['Prog'])
         with open(results_path + 'csvE_Results.csv', 'w', encoding='utf-8',
                   newline='') as f:
@@ -120,7 +123,9 @@ class Experiment:
             json.dump({'time_mean': times_mean,
                         'time_sd': times_sd,
                         'unique_programs_mean': unique_programs_mean,
-                        'unique_programs_sd': unique_programs_sd}, output, indent=4)
+                        'unique_programs_sd': unique_programs_sd,
+                        'tcm': times_mean / n_worlds,
+                        'te': times_mean / 3600 }, output, indent=4)
 
     def write_sampling_csv(self, results_path: str) -> None:
         metrics = []
