@@ -158,10 +158,10 @@ class BayesNetwork:
     def gen_samples(self, samples):
         time_as_key = time.strftime("%Y%m%d-%H%M%S")
         self.generator.drawSamples(samples)
-        self.generator.toCSV(self.path + self.name + 'samples' + time_as_key + '.csv')
+        self.generator.toCSV(self.path + self.name + 'samples' + samples + time_as_key + '.csv')
         samplesToReturn = []
         # Load the csv and return samples as list
-        with open(self.path + self.name + 'samples' + time_as_key + '.csv', 'r') as read_obj:
+        with open(self.path + self.name + 'samples' + samples + time_as_key + '.csv', 'r') as read_obj:
             csv_dict_reader = DictReader(read_obj)
             for row in csv_dict_reader:
                 asdict = dict(row)
