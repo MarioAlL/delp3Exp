@@ -62,7 +62,7 @@ class Programs:
         # To control repeated evidences
         self.known_evidences = []
         # to save programs id and bin
-        self.local_n_programs = {}
+        self.local_n_programs = []
 
     def start_sampling(self, percentile_samples: int, info: str) -> None:
         """To run exact compute of the interval or select randomly a subset of all
@@ -81,7 +81,7 @@ class Programs:
                 unique_world_program[int(self.used_vars[index])] = int(value)
             prog,id_prog = self.utils.map_world_to_prog(unique_world_program)
             if id_prog not in self.local_n_programs:
-                self.local_n_programs[id_prog] = "In"
+                self.local_n_programs.append(id_prog)
                 #evidence = {str(self.used_vars[index]):int(val) for index, val in enumerate(asign_list)}
                 #self.local_n_programs[id_prog] = self.utils.em.get_sampling_prob(evidence)
             counter.next()
